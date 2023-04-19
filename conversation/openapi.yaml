@@ -1,0 +1,27 @@
+openapi: "3.0.0"
+info:
+  title: "GPT-3 API"
+  version: "1.0.0"
+paths:
+  /ask:
+    post:
+      operationId: app.ask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_input:
+                  type: string
+      responses:
+        '200':
+          description: "GPT-3 generated response"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
