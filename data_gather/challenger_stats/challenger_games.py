@@ -72,5 +72,10 @@ def get_challenger_games_past_day():
     games_past_hour = list(unique_game_ids)
     return games_past_hour
 
-challenger_games = get_challenger_games_past_day()
-print(challenger_games)
+def main():
+    # module testing
+    print(get_challenger_games_past_day())
+    
+if __name__ == '__main__':
+    main()
+
