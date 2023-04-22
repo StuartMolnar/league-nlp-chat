@@ -30,7 +30,6 @@ class ChallengerGames:
 
         return json_response['entries']
 
-
     def get_puuid(self, summoner_id):
         url = f'https://{REGION[0]}.api.riotgames.com/lol/summoner/v4/summoners/{summoner_id}?api_key={RIOT_KEY}'
         response = requests.get(url)
@@ -45,7 +44,7 @@ class ChallengerGames:
             print(f"Error: 'puuid' or 'name' key not found in response data: {data}")
             return None
 
-        self.playerNameMap[data['name']] = data['puuid']
+        self.playerNameMap[data['puuid']] = data['name']
         return data['puuid']
 
     def get_recent_matches(self, puuid, start_time):
@@ -61,7 +60,7 @@ class ChallengerGames:
             return self.get_recent_matches(puuid, start_time)
         else:
             print(f"Error: status code {response.status_code}, response content: {response.content}")
-            return ['error']
+            return []
 
     def get_challenger_games_past_day(self):
         current_time = datetime.datetime.utcnow()
@@ -79,7 +78,6 @@ class ChallengerGames:
 
         games_past_day = list(unique_game_ids)
         return games_past_day
-
 
 def main():
     # module testing
