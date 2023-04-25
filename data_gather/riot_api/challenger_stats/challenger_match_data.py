@@ -132,7 +132,13 @@ class MatchData:
         itemsToGrab = ["item0", "item1", "item2", "item3", "item4", "item5", "item6"]
         items = []
         for item in itemsToGrab:
-            items.append(self.get_item_name_by_id(participant[item]))
+            if item == "teamPosition":
+                team_position = participant[item].lower()
+                if team_position == "utility":
+                    team_position = "support"
+                data.append(team_position)
+            else:
+                items.append(self.get_item_name_by_id(participant[item]))
         for data_item in dataToGrab:
             data.append(participant[data_item])
 
