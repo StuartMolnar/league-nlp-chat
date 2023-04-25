@@ -3,3 +3,4 @@ flask_cors
 gunicorn
 openai
 swagger-ui-bundle
+python-dotenv
