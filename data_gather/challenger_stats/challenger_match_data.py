@@ -1,8 +1,6 @@
 import requests
 import time
 import os
-import json
-import datetime
 from dotenv import load_dotenv
 from challenger_games import ChallengerGames
 import logging
@@ -59,7 +57,7 @@ class MatchData:
         Returns:
             str: The item's name as a string, or None if there's an error.
         """
-        logger.info(f"Fetching item name for item ID: {item_id}")
+        logger.debug(f"Fetching item name for item ID: {item_id}")
         language = "en_US"  # You can change this to another language if needed
         item_url = f"https://ddragon.leagueoflegends.com/cdn/{self.ddragonVersion}/data/{language}/item.json"
 
