@@ -5,6 +5,7 @@ data-notes
 
 # Log files
 app.log*
+test-output.json
 
 # Python cache directories
 __pycache__/
@@ -14,3 +15,4 @@ __pycache__/
 
 # Chrome driver
 **/chrome_driver
+data_gather/riot_api/challenger_stats/test-output.json
