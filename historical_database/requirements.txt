@@ -1,0 +1,7 @@
+mysql-connector-python
+pymysql
+SQLAlchemy
+swagger-ui-bundle
+yaml
+connexion
+pykafka
