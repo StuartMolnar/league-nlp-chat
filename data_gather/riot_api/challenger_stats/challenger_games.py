@@ -24,6 +24,7 @@ class ChallengerGames:
     def __init__(self):
         """
         Initialize the ChallengerGames object.
+
         Call fetch_challenger_players() to fetch the challenger players from the Riot Games API.
         """
         logger.info("ChallengerGames object initialized")
@@ -31,6 +32,7 @@ class ChallengerGames:
     def fetch_challenger_players(self):
         """
         Fetch the challenger players from the Riot Games API.
+
         Returns:
             list: A list of challenger players, or an empty list if there's an error.
         """
@@ -52,8 +54,10 @@ class ChallengerGames:
     def fetch_puuid_by_summoner_id(self, summoner_id):
         """
         Fetch the PUUID (Player Universally Unique ID) of a player by their summoner ID.
+
         Args:
             summoner_id (str): The summoner ID of the player.
+
         Returns:
             str: The player's PUUID, or None if there's an error.
         """
@@ -76,9 +80,11 @@ class ChallengerGames:
     def fetch_recent_matches_by_puuid(self, puuid, start_time):
         """
         Fetch the recent matches of a player by their PUUID.
+
         Args:
             puuid (str): The PUUID of the player.
             start_time (int): The Unix timestamp to fetch matches from.
+
         Returns:
             list: A list of recent match IDs, or an empty list if there's an error.
         """
@@ -100,6 +106,7 @@ class ChallengerGames:
     def fetch_challenger_games_from_past_day(self):
         """
         Fetch the challenger games that occurred in the past day.
+
         Returns:
             list: A list of unique game IDs from the past day.
         """
