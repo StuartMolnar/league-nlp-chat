@@ -13,9 +13,22 @@ REGION = 'na1', 'americas'
 
 class ChallengerGames:
     def __init__(self):
+        """
+        Initialize the ChallengerGames object.
+
+        Call get_challenger_players() to fetch the challenger players from the Riot Games API.
+
+        Call the playerNameMap dict to get the player names used, mapped to their PUUID.
+        """
         self.playerNameMap = {}
 
     def get_challenger_players(self):
+        """
+        Fetch the challenger players from the Riot Games API.
+
+        Returns:
+            list: A list of challenger players, or an empty list if there's an error.
+        """
         url = f'https://{REGION[0]}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5?api_key={RIOT_KEY}'
         response = requests.get(url)
         
@@ -31,6 +44,15 @@ class ChallengerGames:
         return json_response['entries']
 
     def get_puuid(self, summoner_id):
+        """
+        Fetch the PUUID (Player Universally Unique ID) of a player by their summoner ID.
+
+        Args:
+            summoner_id (str): The summoner ID of the player.
+
+        Returns:
+            str: The player's PUUID, or None if there's an error.
+        """
         url = f'https://{REGION[0]}.api.riotgames.com/lol/summoner/v4/summoners/{summoner_id}?api_key={RIOT_KEY}'
         response = requests.get(url)
 
@@ -48,7 +70,17 @@ class ChallengerGames:
         return data['puuid']
 
     def get_recent_matches(self, puuid, start_time):
-        url = f'https://{REGION[1]}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?start=0&count=100&startTime={start_time}&api_key={RIOT_KEY}'
+        """
+        Fetch the recent matches of a player by their PUUID.
+
+        Args:
+            puuid (str): The PUUID of the player.
+            start_time (int): The Unix timestamp to fetch matches from.
+
+        Returns:
+            list: A list of recent match IDs, or an empty list if there's an error.
+        """
+        url = f'https://{REGION[1]}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?type=ranked&start=0&count=100&startTime={start_time}&api_key={RIOT_KEY}'
         response = requests.get(url)
 
         if response.status_code == 200:
@@ -63,6 +95,12 @@ class ChallengerGames:
             return []
 
     def get_challenger_games_past_day(self):
+        """
+        Fetch the challenger games that occurred in the past day.
+
+        Returns:
+            list: A list of unique game IDs from the past day.
+        """
         current_time = datetime.datetime.utcnow()
         one_day_ago = int((current_time - datetime.timedelta(days=1)).timestamp())
         challenger_players = self.get_challenger_players()
@@ -80,7 +118,10 @@ class ChallengerGames:
         return games_past_day
 
 def main():
-    # module testing
+    """
+    The main function for testing the ChallengerGames module.
+    Fetches challenger games from the past day and prints the game IDs and player name map.
+    """
     cg = ChallengerGames()
     games_past_day = cg.get_challenger_games_past_day()
     print(games_past_day)
