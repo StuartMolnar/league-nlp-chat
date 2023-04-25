@@ -42,7 +42,7 @@ class MatchData:
         response = requests.get(url)
         if response.status_code == 200:
             versions = response.json()
-            return versions[0]  # Get the latest version
+            return versions[0]  # Latest version
         else:
             logger.error(f"Status code {response.status_code}, response content: {response.content}")
             return None
@@ -58,7 +58,7 @@ class MatchData:
             str: The item's name as a string, or None if there's an error.
         """
         logger.debug(f"Fetching item name for item ID: {item_id}")
-        language = "en_US"  # You can change this to another language if needed
+        language = "en_US"
         item_url = f"https://ddragon.leagueoflegends.com/cdn/{self.ddragonVersion}/data/{language}/item.json"
 
         response = requests.get(item_url)
@@ -127,22 +127,25 @@ class MatchData:
                 kills, deaths, assists, and item names.
         """
         logger.info("Extracting player data from participant")
-        dataToGrab = ["summonerName", "championName", "teamPosition", "kills", "deaths", "assists"]
-        data = []
+        fieldsToGrab = ["summonerName", "championName", "teamPosition", "kills", "deaths", "assists"]
+        fields = []
         itemsToGrab = ["item0", "item1", "item2", "item3", "item4", "item5", "item6"]
         items = []
-        for item in itemsToGrab:
-            if item == "teamPosition":
-                team_position = participant[item].lower()
+        for field in fieldsToGrab:
+            if field == "teamPosition":
+                team_position = participant[field].lower()
                 if team_position == "utility":
                     team_position = "support"
-                data.append(team_position)
+                fields.append(team_position)
             else:
-                items.append(self.get_item_name_by_id(participant[item]))
-        for data_item in dataToGrab:
-            data.append(participant[data_item])
+                fields.append(participant[field])
+        for item in itemsToGrab:
+            item_name = self.get_item_name_by_id(participant[item])
+            if item_name != None:
+                items.append(item_name)
 
-        player_data = data + items
+        player_data = fields + [items]
+
         return player_data
 
     def group_players_by_position(self, players):
