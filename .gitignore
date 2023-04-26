@@ -5,7 +5,7 @@ data-notes
 
 # Log files
 app.log*
-test-output.json
+output.json
 
 # Python cache directories
 __pycache__/
