@@ -203,6 +203,8 @@ class MatchData:
             match_data = self.fetch_match_data_by_game_id(game)
             processed_games.append(self.process_single_match_data(match_data))
 
+        
+        logger.info("Returning challenger match data")
         return processed_games
 
     def fetch_challenger_data(self):
