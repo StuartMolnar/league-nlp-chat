@@ -20,6 +20,9 @@ from base import Base
 from challenger_matchups import ChallengerMatchup
 
 #--------------- add apache kafka ---------------
+# in the challenger games service, use a kafka producer to store the data to a topic
+# in this file, use a kafka consumer to consume the data from the topic and store it to our database
+# may have to update the challenger games service to do all the data preparation logic (i.e. only send one matchup at a time to the producer - during data gathering) before sending it to the topic
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -68,6 +71,7 @@ app = FastAPI(exception_handlers={Exception: handle_internal_server_error})
 
 @app.post("/challenger-matchup/", response_model=int)
 async def create_matchup(data: Dict[str, List[List[Any]]]):
+    #read the todo list up top
     """
     Create a new challenger matchup in the database.
 

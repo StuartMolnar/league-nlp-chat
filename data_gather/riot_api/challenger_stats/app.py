@@ -18,8 +18,6 @@ if __name__ == '__main__':
     
 
     url = "http://localhost:8000/challenger-matchup/"
-    logger.debug('---------------- running main ----------------')
-    # logger.debug('------------challenger data: %s', challenger_data)
 
     for data_dict in challenger_data:
         logger.info(f"Sending match data to {url}")

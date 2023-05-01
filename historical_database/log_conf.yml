@@ -17,7 +17,7 @@ handlers:
     backupCount: 2  # Keep up to 2 rotated log files
 loggers:
   basicLogger:
-    level: INFO
+    level: DEBUG
     handlers: [console, file]
     propagate: no
 root:
