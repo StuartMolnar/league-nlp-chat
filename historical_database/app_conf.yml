@@ -1,11 +1,7 @@
 version: 1
-datastore:
-  user: root
+database:
+  username: root
   password: password
   hostname: localhost
   port: 3306
-  db: challenger_stats
-events:
-  hostname: localhost
-  port: 9092
-  topic: events
+  name: league_data
