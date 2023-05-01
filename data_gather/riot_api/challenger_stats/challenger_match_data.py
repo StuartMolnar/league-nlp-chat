@@ -19,12 +19,19 @@ RIOT_KEY = os.getenv("RIOT_KEY")
 REGION = 'na1', 'americas'
 
 class MatchData:
+    """
+    A class to fetch and filter match data from the Riot API.
+
+    Call the fetch_challenger_data method to fetch the latest challenger match data
+    """
     def __init__(self):
         """
         Initialize the MatchData object.
 
         Fetches the latest game data version from the Data Dragon API and initializes
         the gameDataFiltered attribute as an empty list.
+
+        Call the fetch_challenger_data method to fetch the latest challenger match data.
         """
         logger.info("MatchData object initialized")
         self.ddragonVersion = self.get_latest_ddragon_version()

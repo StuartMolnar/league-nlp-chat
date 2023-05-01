@@ -1,39 +1,33 @@
+import requests
 import json
 from challenger_match_data import MatchData
+import logging
+import logging.config
+import yaml
 
-def merge_data(existing_data, new_data):
-    if isinstance(existing_data, list) and isinstance(new_data, list):
-        return existing_data + new_data
-    elif isinstance(existing_data, dict) and isinstance(new_data, dict):
-        for key in new_data:
-            if key in existing_data:
-                existing_data[key] = merge_data(existing_data[key], new_data[key])
-            else:
-                existing_data[key] = new_data[key]
-        return existing_data
-    else:
-        return new_data
+with open('log_conf.yml', 'r') as f:
+    log_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(log_config)
 
-def main():
-    md = MatchData()
-    challenger_data = md.fetch_challenger_data()
+logger = logging.getLogger('basicLogger')
 
-    # Read existing data from the JSON file
-    try:
-        with open('test-output.json', 'r') as infile:
-            existing_data = json.load(infile)
-    except (FileNotFoundError, json.JSONDecodeError):
-        existing_data = None
-
-    # Merge the existing data with the new data
-    if existing_data is not None:
-        combined_data = merge_data(existing_data, challenger_data)
-    else:
-        combined_data = challenger_data
-
-    # Write the combined data back to the JSON file
-    with open('test-output.json', 'w') as outfile:
-        json.dump(combined_data, outfile, indent=4)
 
 if __name__ == '__main__':
-    main()
+    md = MatchData()
+    challenger_data = md.fetch_challenger_data()
+    
+
+    url = "http://localhost:8000/challenger-matchup/"
+    logger.debug('---------------- running main ----------------')
+    # logger.debug('------------challenger data: %s', challenger_data)
+
+    for data_dict in challenger_data:
+        logger.info(f"Sending match data to {url}")
+        for key, value in data_dict.items():
+            payload = {key: value}
+            response = requests.post(url, json=payload)
+
+            if response.status_code == 200:
+                logger.info(f"Data sent successfully, received ID: {response.json()}")
+            else:
+                logger.error(f"Failed to send data: {response.status_code}, {response.text}")

@@ -1,3 +1,6 @@
+"""
+This module provides API endpoints to manage league of legends data.
+"""
 from fastapi import FastAPI, Path, Request
 from fastapi.responses import JSONResponse
 from fastapi import status
@@ -16,6 +19,8 @@ from sqlalchemy.orm import sessionmaker
 from base import Base
 from challenger_matchups import ChallengerMatchup
 
+#--------------- add apache kafka ---------------
+
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
     logging.config.dictConfig(log_config)
@@ -33,6 +38,9 @@ app_SESSION = sessionmaker(bind=app_ENGINE)
 app = FastAPI()
 
 class PlayerData(BaseModel):
+    """
+    Represents the data for a single player in a challenger matchup.
+    """
     name: str
     champion: str
     role: str
@@ -42,6 +50,9 @@ class PlayerData(BaseModel):
     items: list[str]
 
 class ChallengerMatchupCreate(BaseModel):
+    """
+    Represents the data for a challenger matchup, including both players.
+    """
     players: list[list[PlayerData]]
 
 @app.exception_handler(Exception)
@@ -57,7 +68,21 @@ app = FastAPI(exception_handlers={Exception: handle_internal_server_error})
 
 @app.post("/challenger-matchup/", response_model=int)
 async def create_matchup(data: Dict[str, List[List[Any]]]):
-    players = data['BOTTOM']
+    """
+    Create a new challenger matchup in the database.
+
+    Args:
+        data: A dictionary containing a single key-value pair,
+              where the key is the role and the value is a list
+              of two lists, each representing a player's data.
+
+    Returns:
+        The ID of the created matchup.
+    """
+
+    logger.info('Creating a new challenger matchup')
+    
+    players = next(iter(data.values())) # Extract the first value from the dictionary regardless of the key
     player1 = players[0]
     player2 = players[1]
 
@@ -68,26 +93,22 @@ async def create_matchup(data: Dict[str, List[List[Any]]]):
         player1_kills=player1[3],
         player1_deaths=player1[4],
         player1_assists=player1[5],
-        player1_items=json.dumps(player1[6]),
+        player1_items=json.dumps(player1[6]), # Serialize player items as a JSON string before storing them in the database
         player2_name=player2[0],
         player2_champion=player2[1],
         player2_role=player2[2],
         player2_kills=player2[3],
         player2_deaths=player2[4],
         player2_assists=player2[5],
-        player2_items=json.dumps(player2[6])
+        player2_items=json.dumps(player2[6]) # Serialize player items as a JSON string before storing them in the database
     )
-
-    print('length 1', len(matchup.player1_items))
-    print('length 2', len(matchup.player2_items))
-    print('player1 items: ', matchup.player1_items)
-    print('player2 items: ', matchup.player2_items)
-    print('player 1 type: ', type(matchup.player1_items))
-    print('player 2 type: ', type(matchup.player2_items))
+  
     session = app_SESSION()
     session.add(matchup)
     session.commit()
     session.refresh(matchup)
+
+    logger.info(f"Created matchup object: {matchup}")
 
     return matchup.id
 
@@ -105,34 +126,3 @@ app.add_middleware(
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
 
-
-
-
-# class PlayerData(BaseModel):
-#     name: str
-#     champion: str
-#     role: str
-#     kills: int
-#     deaths: int
-#     assists: int
-#     items: list[str]
-
-# class ChallengerMatchupCreate(BaseModel):
-#     players: list[PlayerData]
-
-# @app.on_event("startup")
-# async def create_table():
-#     table = ChallengerMatchup.__table__
-#     async with Base.begin() as conn:
-#         if not await Base.has_table(table.name):
-#             create_table_query = CreateTable(table)
-#             await conn.run_sync(conn.execute)(create_table_query)
-
-# @app.post("/challenger-matchup/", response_model=int)
-# async def create_matchup(data: ChallengerMatchupCreate):
-#     matchup_id = await create_challenger_matchup(data.players)
-#     return matchup_id
-
-# @app.delete("/challenger-matchup/{id}")
-# async def delete_matchup(id: int = Path(..., description="The ID of the challenger matchup to delete")):
-#     return await delete_challenger_matchup(id)
