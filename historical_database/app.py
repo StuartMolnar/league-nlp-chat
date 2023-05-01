@@ -60,9 +60,6 @@ async def create_matchup(data: Dict[str, List[List[Any]]]):
     players = data['BOTTOM']
     player1 = players[0]
     player2 = players[1]
-    
-
-
 
     matchup = ChallengerMatchup(
         player1_name=player1[0],
@@ -71,14 +68,14 @@ async def create_matchup(data: Dict[str, List[List[Any]]]):
         player1_kills=player1[3],
         player1_deaths=player1[4],
         player1_assists=player1[5],
-        player1_items=player1[6],  # pass list directly
+        player1_items=json.dumps(player1[6]),
         player2_name=player2[0],
         player2_champion=player2[1],
         player2_role=player2[2],
         player2_kills=player2[3],
         player2_deaths=player2[4],
         player2_assists=player2[5],
-        player2_items=player2[6]   # pass list directly
+        player2_items=json.dumps(player2[6])
     )
 
     print('length 1', len(matchup.player1_items))
@@ -93,8 +90,6 @@ async def create_matchup(data: Dict[str, List[List[Any]]]):
     session.refresh(matchup)
 
     return matchup.id
-
-
 
 # Allow CORS requests
 app.add_middleware(
