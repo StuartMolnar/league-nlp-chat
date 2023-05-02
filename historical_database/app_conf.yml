@@ -5,3 +5,6 @@ database:
   hostname: localhost
   port: 3306
   name: league_data
+kafka:
+  bootstrap_servers: 'localhost:9092'
+  topic: 'challenger_matchups'

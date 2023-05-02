@@ -1,7 +1,7 @@
 """
 This module provides API endpoints to manage league of legends data.
 """
-from fastapi import FastAPI, Path, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi import status
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,9 +10,9 @@ import uvicorn
 import logging
 import logging.config
 import yaml
-from typing import List, Dict, Any
 import json
-
+from kafka import KafkaConsumer
+import threading
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -38,7 +38,16 @@ app_ENGINE = create_engine(f"mysql+pymysql://{app_config['database']['username']
 Base.metadata.bind = app_ENGINE
 app_SESSION = sessionmaker(bind=app_ENGINE)
 
-app = FastAPI()
+# app = FastAPI()
+
+# # Allow CORS requests
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 class PlayerData(BaseModel):
     """
@@ -58,19 +67,21 @@ class ChallengerMatchupCreate(BaseModel):
     """
     players: list[list[PlayerData]]
 
-@app.exception_handler(Exception)
-async def handle_internal_server_error(request: Request, exc: Exception):
-    logger.exception(exc)
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"message": "Internal server error", "detail": str(exc)},
-    )
+# implement get methods to retrieve the data from the database
+# @app.exception_handler(Exception)
+# async def handle_internal_server_error(request: Request, exc: Exception):
+#     logger.exception(exc)
+#     return JSONResponse(
+#         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#         content={"message": "Internal server error", "detail": str(exc)},
+#     )
 
 
-app = FastAPI(exception_handlers={Exception: handle_internal_server_error})   
+# app = FastAPI(exception_handlers={Exception: handle_internal_server_error})   
 
-@app.post("/challenger-matchup/", response_model=int)
-async def create_matchup(data: Dict[str, List[List[Any]]]):
+
+
+def process_matchup(players):
     #read the todo list up top
     """
     Create a new challenger matchup in the database.
@@ -86,7 +97,6 @@ async def create_matchup(data: Dict[str, List[List[Any]]]):
 
     logger.info('Creating a new challenger matchup')
     
-    players = next(iter(data.values())) # Extract the first value from the dictionary regardless of the key
     player1 = players[0]
     player2 = players[1]
 
@@ -116,17 +126,32 @@ async def create_matchup(data: Dict[str, List[List[Any]]]):
 
     return matchup.id
 
-# Allow CORS requests
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def consume_messages():
+    """
+    Consume messages from the Kafka topic and process them.
 
+    This function creates a Kafka consumer and subscribes to the configured topic.
+    The consumer is set up to deserialize the received messages from JSON format.
+    It listens for new messages in the topic and calls the `process_matchup` function
+    for each message to store the data in the database.
+    """
+    logger.info('Consuming messages from kafka topic')
+    consumer = KafkaConsumer(
+        app_config['kafka']['topic'],
+        bootstrap_servers=app_config['kafka']['bootstrap_servers'],
+        value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+        auto_offset_reset='latest',
+        enable_auto_commit=True,
+        group_id='matchups_group',
+    )
+
+    for message in consumer:
+        process_matchup(message.value)
 
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    # Start the Kafka consumer in a separate thread
+    kafka_consumer_thread = threading.Thread(target=consume_messages)
+    kafka_consumer_thread.start()
+    # uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
 
