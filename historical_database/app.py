@@ -12,6 +12,7 @@ import logging.config
 import yaml
 import json
 from kafka import KafkaConsumer
+from datetime import datetime, timezone
 import threading
 from contextlib import contextmanager
 
@@ -19,11 +20,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from base import Base
 from challenger_matchups import ChallengerMatchup
-
-#--------------- add apache kafka ---------------
-# in the challenger games service, use a kafka producer to store the data to a topic
-# in this file, use a kafka consumer to consume the data from the topic and store it to our database
-# may have to update the challenger games service to do all the data preparation logic (i.e. only send one matchup at a time to the producer - during data gathering) before sending it to the topic
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -39,16 +35,16 @@ app_ENGINE = create_engine(f"mysql+pymysql://{app_config['database']['username']
 Base.metadata.bind = app_ENGINE
 app_SESSION = sessionmaker(bind=app_ENGINE)
 
-# app = FastAPI()
+app = FastAPI()
 
-# # Allow CORS requests
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+# Allow CORS requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class PlayerData(BaseModel):
     """
@@ -68,18 +64,67 @@ class ChallengerMatchupCreate(BaseModel):
     """
     players: list[list[PlayerData]]
 
-# implement get methods to retrieve the data from the database
-# @app.exception_handler(Exception)
-# async def handle_internal_server_error(request: Request, exc: Exception):
-#     logger.exception(exc)
-#     return JSONResponse(
-#         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#         content={"message": "Internal server error", "detail": str(exc)},
-#     )
+@app.exception_handler(Exception)
+async def handle_internal_server_error(exc: Exception):
+    """
+    Handle internal server errors and log the exception.
+
+    This function logs the exception and returns an appropriate JSON response
+    with a 500 Internal Server Error status code.
+
+    Args:
+        exc (Exception): The exception that was raised.
+
+    Returns:
+        JSONResponse: A JSON response with a 500 Internal Server Error status code,
+                      and a content containing the error message and exception details.
+    """
+    logger.exception(exc)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"message": "Internal server error", "detail": str(exc)},
+    )
+app = FastAPI(exception_handlers={Exception: handle_internal_server_error})  
+
+@app.get("/matchups")
+async def get_all_matchups():
+    """
+    Retrieve all challenger matchups from the database that were created on the same day as the request.
+
+    Returns:
+        list: A list of challenger matchups, where each matchup contains data for both players.
+    """
+    logger.info("Retrieving all challenger matchups from the database")
+
+    try:
+        with session_scope() as session:
+            today = datetime.now(timezone.utc).date()  # Get the current date in UTC timezone
+            matchups = session.query(ChallengerMatchup).filter(
+                ChallengerMatchup.timestamp >= today  # Filter by created_at date
+            ).all()
+
+            results = []
+            for matchup in matchups:
+                # Deserialize player items from JSON string before returning the data
+                player1_items = json.loads(matchup.player1_items)
+                player2_items = json.loads(matchup.player2_items)
+
+                result = {
+                    "players": [
+                        [matchup.player1_name, matchup.player1_champion, matchup.player1_role, matchup.player1_kills, matchup.player1_deaths, matchup.player1_assists, player1_items],
+                        [matchup.player2_name, matchup.player2_champion, matchup.player2_role, matchup.player2_kills, matchup.player2_deaths, matchup.player2_assists, player2_items]
+                    ]
+                }
+                results.append(result)
+
+            return results
+
+    except Exception as e:
+        logger.error(f"Failed to retrieve matchups: {e}", exc_info=True)
+        raise e
 
 
-# app = FastAPI(exception_handlers={Exception: handle_internal_server_error})  
-#  
+
 @contextmanager
 def session_scope():
     """
@@ -98,7 +143,6 @@ def session_scope():
         session (Session): An instance of a SQLAlchemy session for
                            executing database operations.
     """
-    """Provide a transactional scope around a series of operations."""
     session = app_SESSION()
     try:
         yield session
@@ -163,7 +207,12 @@ def consume_messages():
     try:
         logger.info('Consuming messages from kafka topic')
         consumer = KafkaConsumer(
-            # ...
+            app_config['kafka']['topic'],
+            bootstrap_servers=app_config['kafka']['bootstrap_servers'],
+            value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+            auto_offset_reset='latest',
+            enable_auto_commit=True,
+            group_id='matchups_group',
         )
 
         for message in consumer:
@@ -175,7 +224,7 @@ def consume_messages():
 
 if __name__ == "__main__":
     # Start the Kafka consumer in a separate thread
-    kafka_consumer_thread = threading.Thread(target=consume_messages)
-    kafka_consumer_thread.start()
-    # uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    # kafka_consumer_thread = threading.Thread(target=consume_messages)
+    # kafka_consumer_thread.start()
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
 

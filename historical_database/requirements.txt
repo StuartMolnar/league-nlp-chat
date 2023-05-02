@@ -2,4 +2,8 @@ mysql-connector-python
 SQLAlchemy
 swagger-ui-bundle
 fastapi
-pykafka
+pydantic
+uvicorn
+PyYAML
+kafka-python
+

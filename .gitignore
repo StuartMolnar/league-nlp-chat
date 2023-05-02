@@ -3,15 +3,14 @@
 notes
 data-notes
 
-# Log files
 app.log*
 output.json
 
-# Python cache directories
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Chrome driver
 **/chrome_driver
+
+node_modules
