@@ -8,4 +8,4 @@ database:
 kafka:
   bootstrap_servers: 'localhost:9092'
   topic_matchups: 'challenger_matchups'
-  topic_guides: 'challenger_guides'
+  topic_guides: 'champion_guides'

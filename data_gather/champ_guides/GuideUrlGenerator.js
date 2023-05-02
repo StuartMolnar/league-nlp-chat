@@ -1,4 +1,9 @@
 const axios = require('axios');
+const logger = require('./log_conf');
+
+const RIOT_API_VERSIONS_URL = 'https://ddragon.leagueoflegends.com/api/versions.json';
+const RIOT_API_CHAMPIONS_URL = 'http://ddragon.leagueoflegends.com/cdn/version/data/en_US/champion.json';
+const MOBALYTICS_GUIDE_URL = 'https://app.mobalytics.gg/lol/champions/name/guide';
 
 /**
  * A class to generate Mobalytics guide URLs for League of Legends champions.
@@ -10,13 +15,15 @@ class GuideUrlGenerator {
    * @returns {Promise<string>} The latest version of the Riot Data Dragon API.
    */
   async #getLatestVersion() {
+    logger.info('Fetching latest version of Riot Data Dragon API');
     try {
-      const response = await axios.get('https://ddragon.leagueoflegends.com/api/versions.json');
+      const response = await axios.get(RIOT_API_VERSIONS_URL);
       const versions = response.data;
       const latestVersion = versions[0];
       return latestVersion;
     } catch (error) {
-      console.error(`Error fetching latest version: ${error}`);
+      logger.error(`Error fetching latest version: ${error}`);
+      throw error;
     }
   }
 
@@ -26,19 +33,15 @@ class GuideUrlGenerator {
    * @returns {Promise<string[]>} An array of cleaned champion names.
    */
   async #getAllChampionNames() {
+    logger.info('Fetching all champion names from Riot Data Dragon API');
     const latestVersion = await this.#getLatestVersion();
     try {
-      const response = await axios.get(`http://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/champion.json`);
+      const response = await axios.get(RIOT_API_CHAMPIONS_URL.replace('version', latestVersion));
       const champions = response.data.data;
-      let championNames = [];
-      for (let champion in champions) {
-        let championName = champions[champion].name;
-        championName = championName.replace(/[^\w\s]|_/g, "").replace(/\s+/g, "");
-        championNames.push(championName);
-      }
-      return championNames;
+      return Object.values(champions).map(champion => champion.name.replace(/[^\w\s]|_/g, "").replace(/\s+/g, ""));
     } catch (error) {
-      console.error(`Error fetching champion names: ${error}`);
+      logger.error(`Error fetching champion names: ${error}`);
+      throw error;
     }
   }
 
@@ -48,14 +51,9 @@ class GuideUrlGenerator {
    * @returns {Promise<string[]>} An array of Mobalytics guide URLs.
    */
   async generateChampionGuideUrls() {
+    logger.info('Generating Mobalytics guide URLs for every champion');
     const championNames = await this.#getAllChampionNames();
-    const baseUrl = 'https://app.mobalytics.gg/lol/champions/name/guide';
-    let championGuideUrls = [];
-    championNames.forEach(championName => {
-      let championGuideUrl = baseUrl.replace('name', championName);
-      championGuideUrls.push(championGuideUrl);
-    });
-    return championGuideUrls;
+    return championNames.map(championName => MOBALYTICS_GUIDE_URL.replace('name', championName));
   }
 }
 
