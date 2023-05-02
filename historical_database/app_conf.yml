@@ -7,4 +7,5 @@ database:
   name: league_data
 kafka:
   bootstrap_servers: 'localhost:9092'
-  topic: 'challenger_matchups'
+  topic_matchups: 'challenger_matchups'
+  topic_guides: 'challenger_guides'

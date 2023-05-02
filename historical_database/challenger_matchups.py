@@ -1,19 +1,7 @@
-import json
 from datetime import datetime
-from typing import Any
 from sqlalchemy import Column, Integer, String, DateTime, JSON
-from sqlalchemy.orm import Session
-import logging
-import logging.config
-import yaml
 
 from base import Base
-
-with open('log_conf.yml', 'r') as f:
-    log_config = yaml.safe_load(f.read())
-    logging.config.dictConfig(log_config)
-
-logger = logging.getLogger('basicLogger')
 
 class ChallengerMatchup(Base):
     __tablename__ = "challenger_matchups"
