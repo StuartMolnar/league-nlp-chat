@@ -14,7 +14,6 @@ handlers:
     formatter: simple
     filename: app.log
     maxBytes: 1048576  # 1 MB
-    backupCount: 2  # Keep up to 2 rotated log files
 loggers:
   basicLogger:
     level: DEBUG

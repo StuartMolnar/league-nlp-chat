@@ -25,11 +25,11 @@ class ChallengerGames:
         """
         Initialize the ChallengerGames object.
 
-        Call fetch_challenger_players() to fetch the challenger players from the Riot Games API.
+        Call fetch_challenger_games_from_past_day() to fetch the challenger games from the Riot Games API.
         """
         logger.info("ChallengerGames object initialized")
 
-    def fetch_challenger_players(self):
+    def __fetch_challenger_players(self):
         """
         Fetch the challenger players from the Riot Games API.
 
@@ -51,7 +51,7 @@ class ChallengerGames:
 
         return json_response['entries']
 
-    def fetch_puuid_by_summoner_id(self, summoner_id):
+    def __fetch_puuid_by_summoner_id(self, summoner_id):
         """
         Fetch the PUUID (Player Universally Unique ID) of a player by their summoner ID.
 
@@ -77,7 +77,7 @@ class ChallengerGames:
 
         return data['puuid']
 
-    def fetch_recent_matches_by_puuid(self, puuid, start_time):
+    def __fetch_recent_matches_by_puuid(self, puuid, start_time):
         """
         Fetch the recent matches of a player by their PUUID.
 
@@ -98,7 +98,7 @@ class ChallengerGames:
             retry_after = int(response.headers.get('Retry-After', 1))
             logger.info(f"Rate limit exceeded. Waiting {retry_after} seconds before retrying.")
             time.sleep(retry_after)
-            return self.fetch_recent_matches_by_puuid(puuid, start_time)
+            return self.__fetch_recent_matches_by_puuid(puuid, start_time)
         else:
             logger.warning(f"Status code {response.status_code}, response content: {response.content}")
             return []
@@ -110,15 +110,16 @@ class ChallengerGames:
         Returns:
             list: A list of unique game IDs from the past day.
         """
+        logger.info("Fetching challenger match data")
         current_time = datetime.datetime.utcnow()
         one_day_ago = int((current_time - datetime.timedelta(days=1)).timestamp())
-        challenger_players = self.fetch_challenger_players()
+        challenger_players = self.__fetch_challenger_players()
         unique_game_ids = set()
 
         for player in challenger_players:
             summoner_id = player['summonerId']
-            puuid = self.fetch_puuid_by_summoner_id(summoner_id)
-            recent_matches = self.fetch_recent_matches_by_puuid(puuid, one_day_ago)
+            puuid = self.__fetch_puuid_by_summoner_id(summoner_id)
+            recent_matches = self.__fetch_recent_matches_by_puuid(puuid, one_day_ago)
 
             for match in recent_matches:
                 unique_game_ids.add(match)

@@ -6,6 +6,18 @@ from challenger_games import ChallengerGames
 import logging
 import logging.config
 import yaml
+from kafka import KafkaProducer
+import json
+
+# Initialize the Kafka producer
+producer = KafkaProducer(
+    bootstrap_servers='localhost:9092',
+    value_serializer=lambda v: json.dumps(v).encode('utf-8')
+)
+
+# Load the configuration files
+with open('app_conf.yml', 'r') as f:
+    app_config = yaml.safe_load(f.read())
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -17,12 +29,15 @@ load_dotenv()
 
 RIOT_KEY = os.getenv("RIOT_KEY")
 REGION = 'na1', 'americas'
+KAFKA_TOPIC = app_config['kafka']['topic']
+KAFKA_BOOTSTRAP_SERVERS = app_config['kafka']['bootstrap_servers']
 
 class MatchData:
     """
     A class to fetch and filter match data from the Riot API.
 
-    Call the fetch_challenger_data method to fetch the latest challenger match data
+    Call the produce_challenger_data method to fetch the latest challenger match data
+    and send it to a Kafka topic.
     """
     def __init__(self):
         """
@@ -34,10 +49,10 @@ class MatchData:
         Call the fetch_challenger_data method to fetch the latest challenger match data.
         """
         logger.info("MatchData object initialized")
-        self.ddragonVersion = self.get_latest_ddragon_version()
+        self.ddragonVersion = self.__get_latest_ddragon_version()
         self.gameDataFiltered = []
 
-    def get_latest_ddragon_version(self):
+    def __get_latest_ddragon_version(self):
         """
         Fetch the latest game data version from the Data Dragon API.
         
@@ -54,7 +69,7 @@ class MatchData:
             logger.error(f"Status code {response.status_code}, response content: {response.content}")
             return None
         
-    def get_item_name_by_id(self, item_id):
+    def __get_item_name_by_id(self, item_id):
         """
         Get the name of the in-game item by its ID.
 
@@ -64,7 +79,7 @@ class MatchData:
         Returns:
             str: The item's name as a string, or None if there's an error.
         """
-        logger.debug(f"Fetching item name for item ID: {item_id}")
+        # logger.debug(f"Fetching item name for item ID: {item_id}")
         language = "en_US"
         item_url = f"https://ddragon.leagueoflegends.com/cdn/{self.ddragonVersion}/data/{language}/item.json"
 
@@ -81,7 +96,7 @@ class MatchData:
             logger.error(f"Status code {response.status_code}, response content: {response.content}")
             return     
 
-    def fetch_match_data_by_game_id(self, game_id):
+    def __fetch_match_data_by_game_id(self, game_id):
         """
         Fetch match data for a specific game ID from the Riot Games API.
 
@@ -101,12 +116,12 @@ class MatchData:
             retry_after = int(response.headers.get('Retry-After', 1))
             logger.info(f"Rate limit exceeded. Waiting {retry_after} seconds before retrying.")
             time.sleep(retry_after)
-            return self.fetch_match_data_by_game_id(game_id)
+            return self.__fetch_match_data_by_game_id(game_id)
         else:
             logger.warning(f"Status code {response.status_code}, response content: {response.content}")
             return None        
             
-    def extract_unique_team_positions(self, players):        
+    def __extract_unique_team_positions(self, players):        
         """
         Extract unique team positions from a list of player dictionaries.
 
@@ -122,7 +137,7 @@ class MatchData:
             unique_positions.add(player["teamPosition"])
         return unique_positions
     
-    def extract_player_data_from_participant(self, participant):
+    def __extract_player_data_from_participant(self, participant):
         """
         Extracts and returns relevant player data from the participant dictionary.
 
@@ -147,15 +162,34 @@ class MatchData:
             else:
                 fields.append(participant[field])
         for item in itemsToGrab:
-            item_name = self.get_item_name_by_id(participant[item])
+            item_name = self.__get_item_name_by_id(participant[item])
             if item_name != None:
                 items.append(item_name)
 
         player_data = fields + [items]
 
         return player_data
+    
+    def __send_compositions_to_kafka(self, versus_compositions, topic):
+        """
+        Sends each composition in the versus_compositions data structure to a Kafka topic.
 
-    def group_players_by_position(self, players):
+        Args:
+            versus_compositions (dict): A dictionary with keys as team positions and values as lists of player data for each team position.
+            topic (str): The name of the Kafka topic to send the data to.
+        """
+        logger.info("Sending matchups to Kafka")
+        for composition in versus_compositions.items():
+            composition = composition[-1] # Get the list of player data from the tuple
+            # Send the data to the specified Kafka topic
+            producer.send(topic, composition)
+            logger.debug(f"Sent matchup data to Kafka topic '{topic}': {composition}")
+
+        # Flush the Kafka producer to ensure all messages are sent
+        producer.flush()
+
+
+    def __group_players_by_position(self, players):
         """
         Pairs players by their team position and returns a dictionary of compositions.
 
@@ -167,111 +201,62 @@ class MatchData:
                 player data for each team position.
         """
         logger.info("Grouping players by position")
-        unique_positions = self.extract_unique_team_positions(players)
+        unique_positions = self.__extract_unique_team_positions(players)
         versus_compositions = {position: [] for position in unique_positions}
 
         for i in range(len(players)):
             team_position = players[i]["teamPosition"]
 
             if team_position in versus_compositions:
-                data = self.extract_player_data_from_participant(players[i])
+                data = self.__extract_player_data_from_participant(players[i])
+                logger.debug(f"Player data: {data}")
                 versus_compositions[team_position].append(data)
-
-        return versus_compositions
         
-    def process_single_match_data(self, match_data):
+        kafka_topic = KAFKA_TOPIC
+        self.__send_compositions_to_kafka(versus_compositions, kafka_topic)
+        
+    def __process_single_match_data(self, match_data):
         """
         Process match data to extract and pair player data by team position.
 
         Args:
             match_data (dict): A dictionary containing the match data.
 
-        Returns:
-            dict: A dictionary with keys as team positions and values as lists of
-                player data for each team position.
         """
         logger.info("Processing single match data")
         players = match_data["info"]["participants"]
-        return self.group_players_by_position(players)
+        self.__group_players_by_position(players)
 
-    def process_all_games(self, games):
+    def __process_all_games(self, games):
         """
-        Process a list of games, extracting and pairing player data by team position.
+        Process a list of games, extracting and pairing player data by team position,
+        and sending the compositions to a Kafka topic.
 
         Args:
             games (list): A list of game IDs.
-
-        Returns:
-            list: A list of dictionaries, each containing player data paired by team position.
         """
         logger.info("Processing all games")
-        processed_games = []
         for game in games:
-            match_data = self.fetch_match_data_by_game_id(game)
-            processed_games.append(self.process_single_match_data(match_data))
-
+            logger.info(f"Processing game: {game}")
+            match_data = self.__fetch_match_data_by_game_id(game)
+            self.__process_single_match_data(match_data)
         
-        logger.info("Returning challenger match data")
-        return processed_games
 
-    def fetch_challenger_data(self):
+    def produce_challenger_data(self):
         """
-        Fetch and process match data for challenger games from the past day.
-
-        Returns:
-            list: A list of dictionaries, each containing player data paired by team position.
+        Fetch and process match data for challenger games from the past day,
+        and send the compositions to a Kafka topic.
         """
-        logger.info("Fetching challenger match data")
         cg = ChallengerGames()
         games = cg.fetch_challenger_games_from_past_day()
-        return self.process_all_games(games)
-
-def main():
-    #!!! todo, finish process all games function
-    # prepare data for use in historical database service
-    # set up main file that will run the modules and send data to the database service
-
-
-    #module testing
-    # cg = ChallengerGames()
-
-    # Get challenger games from the past day
-    # games_past_day = cg.get_challenger_games_past_day()
-    games_past_day = ['NA1_4638633595', 'NA1_4638619939', 'NA1_4638740278', 'NA1_4638454797', 'NA1_4638500101', 'NA1_4638732418', 'NA1_4638622740', 'NA1_4638582501', 'NA1_4638655280', 'NA1_4638478680', 'NA1_4638810106', 'NA1_4638526935', 'NA1_4638568573', 'NA1_4638390819', 'NA1_4638799303', 'NA1_4638640572', 'NA1_4638625289', 'NA1_4638389920', 'NA1_4638547789', 'NA1_4638542108', 'NA1_4638453528', 'NA1_4638677124', 'NA1_4638485235', 'NA1_4638668657', 'NA1_4638769187', 'NA1_4638679608', 'NA1_4638662477', 'NA1_4638714098', 'NA1_4638621892', 'NA1_4638631866', 'NA1_4638689177', 'NA1_4638566386', 'NA1_4638629556', 'NA1_4638850853', 'NA1_4638501707', 'NA1_4638786771', 'NA1_4638398551', 'NA1_4638677565', 'NA1_4638544648', 'NA1_4638638258', 'NA1_4638680652', 'NA1_4638649249', 'NA1_4638611224', 'NA1_4638561991', 'NA1_4638732992', 'NA1_4638792285', 'NA1_4638802503', 'NA1_4638721939', 'NA1_4638558263', 'NA1_4638714749', 'NA1_4638650254', 'NA1_4638581458', 'NA1_4638380080', 'NA1_4638874515', 'NA1_4638627196']
-    # print("Challenger games in the past day:")
-    
-    # process_all_games(games_past_day)
-
-
-
+        self.__process_all_games(games)
     
 if __name__ == '__main__':
-    data = MatchData()
-    data.main()
-
-
-        # Get the playerNameMap dictionary
-        # player_name_map = cg.playerNameMap
-        # print("Player Name Map:")
-        # print(player_name_map)
-
-
-# create database to store info
-
-# if player name not in map, get name from puuid api and add to map
-
-# table by champion
-
-# 	vi
-# 		summoner name
-# 		position
-# 		versus karthus
-# 		build [item 1, item 2, item 3, ...]
-# 		runes [rune 1, rune 2, rune 3, ...]
-# 		ban morgana
-		
-# 	kat
-# 		...
-	
-# 	...
-
+    pass
+    #module testing
+    # games_past_day = ['NA1_4638619939', 'NA1_4638677565' ]
+    # data = MatchData()
+    # data.__process_all_games(games_past_day)
+    # kafka_topic = KAFKA_TOPIC
+    # bootstrap_servers = KAFKA_BOOTSTRAP_SERVERS
+    # consume_messages(kafka_topic, bootstrap_servers)
