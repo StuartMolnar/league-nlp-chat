@@ -16,9 +16,6 @@ producer = KafkaProducer(
 )
 
 # Load the configuration files
-with open('app_conf.yml', 'r') as f:
-    app_config = yaml.safe_load(f.read())
-
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
     logging.config.dictConfig(log_config)
@@ -29,8 +26,6 @@ load_dotenv()
 
 RIOT_KEY = os.getenv("RIOT_KEY")
 REGION = 'na1', 'americas'
-KAFKA_TOPIC = app_config['kafka']['topic']
-KAFKA_BOOTSTRAP_SERVERS = app_config['kafka']['bootstrap_servers']
 
 class MatchData:
     """
@@ -189,7 +184,7 @@ class MatchData:
         producer.flush()
 
 
-    def __group_players_by_position(self, players):
+    def __group_players_by_position(self, players, topic):
         """
         Pairs players by their team position and returns a dictionary of compositions.
 
@@ -212,10 +207,9 @@ class MatchData:
                 logger.debug(f"Player data: {data}")
                 versus_compositions[team_position].append(data)
         
-        kafka_topic = KAFKA_TOPIC
-        self.__send_compositions_to_kafka(versus_compositions, kafka_topic)
+        self.__send_compositions_to_kafka(versus_compositions, topic)
         
-    def __process_single_match_data(self, match_data):
+    def __process_single_match_data(self, match_data, topic):
         """
         Process match data to extract and pair player data by team position.
 
@@ -225,9 +219,9 @@ class MatchData:
         """
         logger.info("Processing single match data")
         players = match_data["info"]["participants"]
-        self.__group_players_by_position(players)
+        self.__group_players_by_position(players, topic)
 
-    def __process_all_games(self, games):
+    def __process_all_games(self, games, topic):
         """
         Process a list of games, extracting and pairing player data by team position,
         and sending the compositions to a Kafka topic.
@@ -239,24 +233,17 @@ class MatchData:
         for game in games:
             logger.info(f"Processing game: {game}")
             match_data = self.__fetch_match_data_by_game_id(game)
-            self.__process_single_match_data(match_data)
+            self.__process_single_match_data(match_data, topic)
         
 
-    def produce_challenger_data(self):
+    def produce_challenger_data(self, topic):
         """
         Fetch and process match data for challenger games from the past day,
         and send the compositions to a Kafka topic.
         """
         cg = ChallengerGames()
         games = cg.fetch_challenger_games_from_past_day()
-        self.__process_all_games(games)
+        self.__process_all_games(games, topic)
     
 if __name__ == '__main__':
     pass
-    #module testing
-    # games_past_day = ['NA1_4638619939', 'NA1_4638677565' ]
-    # data = MatchData()
-    # data.__process_all_games(games_past_day)
-    # kafka_topic = KAFKA_TOPIC
-    # bootstrap_servers = KAFKA_BOOTSTRAP_SERVERS
-    # consume_messages(kafka_topic, bootstrap_servers)

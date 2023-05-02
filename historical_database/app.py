@@ -13,6 +13,7 @@ import yaml
 import json
 from kafka import KafkaConsumer
 import threading
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -77,9 +78,36 @@ class ChallengerMatchupCreate(BaseModel):
 #     )
 
 
-# app = FastAPI(exception_handlers={Exception: handle_internal_server_error})   
+# app = FastAPI(exception_handlers={Exception: handle_internal_server_error})  
+#  
+@contextmanager
+def session_scope():
+    """
+    Provide a transactional scope around a series of operations.
 
+    This context manager creates a new SQLAlchemy session, handles
+    committing or rolling back transactions based on the success or
+    failure of the operations within the context, and automatically
+    closes the session when the context is exited.
 
+    Usage:
+        with session_scope() as session:
+            # Perform database operations using the session
+
+    Yields:
+        session (Session): An instance of a SQLAlchemy session for
+                           executing database operations.
+    """
+    """Provide a transactional scope around a series of operations."""
+    session = app_SESSION()
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 def process_matchup(players):
     #read the todo list up top
@@ -91,40 +119,37 @@ def process_matchup(players):
               where the key is the role and the value is a list
               of two lists, each representing a player's data.
 
-    Returns:
-        The ID of the created matchup.
     """
-
-    logger.info('Creating a new challenger matchup')
-    
+    logger.info('Creating a new challenger matchup')    
     player1 = players[0]
     player2 = players[1]
 
-    matchup = ChallengerMatchup(
-        player1_name=player1[0],
-        player1_champion=player1[1],
-        player1_role=player1[2],
-        player1_kills=player1[3],
-        player1_deaths=player1[4],
-        player1_assists=player1[5],
-        player1_items=json.dumps(player1[6]), # Serialize player items as a JSON string before storing them in the database
-        player2_name=player2[0],
-        player2_champion=player2[1],
-        player2_role=player2[2],
-        player2_kills=player2[3],
-        player2_deaths=player2[4],
-        player2_assists=player2[5],
-        player2_items=json.dumps(player2[6]) # Serialize player items as a JSON string before storing them in the database
-    )
-  
-    session = app_SESSION()
-    session.add(matchup)
-    session.commit()
-    session.refresh(matchup)
+    try:
+        with session_scope() as session:
+            matchup = ChallengerMatchup(
+                player1_name=player1[0],
+                player1_champion=player1[1],
+                player1_role=player1[2],
+                player1_kills=player1[3],
+                player1_deaths=player1[4],
+                player1_assists=player1[5],
+                player1_items=json.dumps(player1[6]), # Serialize player items as a JSON string before storing them in the database
+                player2_name=player2[0],
+                player2_champion=player2[1],
+                player2_role=player2[2],
+                player2_kills=player2[3],
+                player2_deaths=player2[4],
+                player2_assists=player2[5],
+                player2_items=json.dumps(player2[6]) # Serialize player items as a JSON string before storing them in the database
+            )
+        
+            session.add(matchup)
+            session.flush() 
+            session.refresh(matchup)
 
-    logger.info(f"Created matchup object: {matchup}")
-
-    return matchup.id
+            logger.info(f"Created matchup object: {matchup}")
+    except Exception as e:
+        logger.error(f"Failed to create matchup object: {e}", exc_info=True)
 
 def consume_messages():
     """
@@ -135,18 +160,17 @@ def consume_messages():
     It listens for new messages in the topic and calls the `process_matchup` function
     for each message to store the data in the database.
     """
-    logger.info('Consuming messages from kafka topic')
-    consumer = KafkaConsumer(
-        app_config['kafka']['topic'],
-        bootstrap_servers=app_config['kafka']['bootstrap_servers'],
-        value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-        auto_offset_reset='latest',
-        enable_auto_commit=True,
-        group_id='matchups_group',
-    )
+    try:
+        logger.info('Consuming messages from kafka topic')
+        consumer = KafkaConsumer(
+            # ...
+        )
 
-    for message in consumer:
-        process_matchup(message.value)
+        for message in consumer:
+            process_matchup(message.value)
+
+    except Exception as e:
+        logger.error(f"Error consuming messages: {e}", exc_info=True)
 
 
 if __name__ == "__main__":
