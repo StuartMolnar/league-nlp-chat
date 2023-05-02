@@ -29,10 +29,19 @@ REGION = 'na1', 'americas'
 
 class MatchData:
     """
-    A class to fetch and filter match data from the Riot API.
+    A class to fetch and filter match data from the Riot API and send it to a Kafka topic.
 
-    Call the produce_challenger_data method to fetch the latest challenger match data
-    and send it to a Kafka topic.
+    Attributes:
+        ddragonVersion (str): The latest game data version from the Data Dragon API.
+        gameDataFiltered (list): A list of filtered game data after processing.
+
+    Methods:
+        produce_challenger_data: Fetches and processes match data for challenger games and sends the compositions to a Kafka topic.
+
+    Usage:
+        match_data = MatchData()
+        
+        match_data.produce_challenger_data(topic)
     """
     def __init__(self):
         """

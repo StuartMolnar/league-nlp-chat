@@ -61,12 +61,32 @@ class GuideData(BaseModel):
     guide: str
 
 class KafkaGuides:
+    """
+    A class for consuming champion guide messages from a Kafka topic and storing them in a database.
+
+    Attributes:
+        None
+
+    Methods:
+        process_matchup(guide: GuideData): Stores a champion guide in the database.
+        consume_messages(): Consumes messages from a Kafka topic and processes them.
+        run_kafka_consumer(): Runs the Kafka consumer in a separate thread.
+
+    Usage:
+        kafka_guides = KafkaGuides()
+        
+        kafka_guides.run_kafka_consumer()
+    """
     def __init__(self):
         logger.info('Initialize the KafkaGuides object')
 
-    def process_matchup(self, guide: GuideData):
-        
+    def process_guide(self, guide: GuideData):
+        """
+        Create a new champion guide in the database.
 
+        Args:
+            guide: A GuideData object containing the guide text.
+        """
         try:
             with session_scope() as session:
                 guide = ChampionGuide(
@@ -86,7 +106,7 @@ class KafkaGuides:
 
         This function creates a Kafka consumer and subscribes to the configured topic.
         The consumer is set up to deserialize the received messages from JSON format.
-        It listens for new messages in the topic and calls the `process_matchup` function
+        It listens for new messages in the topic and calls the `process_guide` function
         for each message to store the data in the database.
         """
         try:
@@ -101,7 +121,7 @@ class KafkaGuides:
             )
 
             for message in consumer:
-                self.process_matchup(message.value)
+                self.process_guide(message.value)
 
         except Exception as e:
             logger.error(f"Error consuming messages: {e}", exc_info=True)
@@ -109,6 +129,10 @@ class KafkaGuides:
     def run_kafka_consumer(self):
         """
         Run the Kafka consumer in a separate thread.
+
+        This function creates a new thread for the Kafka consumer and starts it.
+        The consumer listens for new messages in the configured Kafka topic and processes
+        them using the `process_matchup` method.
         """
         kafka_consumer_thread = threading.Thread(target=self.consume_messages)
         kafka_consumer_thread.start()

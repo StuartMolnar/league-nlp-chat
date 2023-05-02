@@ -21,6 +21,20 @@ REGION = 'na1', 'americas'
 
 
 class ChallengerGames:
+    """
+    A class to fetch challenger games data from the Riot API.
+
+    Attributes:
+        None
+
+    Methods:
+        fetch_challenger_games_from_past_day: Fetches the challenger games that occurred in the past day.
+
+    Usage:
+        cg = ChallengerGames()
+        
+        games_past_day = cg.fetch_challenger_games_from_past_day()
+    """
     def __init__(self):
         """
         Initialize the ChallengerGames object.

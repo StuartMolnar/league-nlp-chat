@@ -74,6 +74,22 @@ class ChallengerMatchupCreate(BaseModel):
 
 
 class KafkaMatchups:
+    """
+    A class for consuming challenger matchup messages from a Kafka topic and storing them in a database.
+
+    Attributes:
+        None
+
+    Methods:
+        process_matchup(players): Stores a challenger matchup in the database.
+        consume_messages(): Consumes messages from a Kafka topic and processes them.
+        run_kafka_consumer(): Runs the Kafka consumer in a separate thread.
+
+    Usage:
+        kafka_matchups = KafkaMatchups()
+        
+        kafka_matchups.run_kafka_consumer()
+    """
     def __init__(self):
         logger.info('Initialize the KafkaMatchups object')
 

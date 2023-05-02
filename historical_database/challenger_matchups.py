@@ -4,6 +4,9 @@ from sqlalchemy import Column, Integer, String, DateTime, JSON
 from base import Base
 
 class ChallengerMatchup(Base):
+    """
+    A class representing a challenger matchup in a League of Legends game.
+    """
     __tablename__ = "challenger_matchups"
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=datetime.utcnow)

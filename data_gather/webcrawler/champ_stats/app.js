@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 const kafka = require('kafka-node');
 const GuideUrlGenerator = require('./GuideUrlGenerator');
-const logger = require('./Logger');
+const logger = require('./log_conf');
 const fs = require('fs');
 const yaml = require('js-yaml');
 
