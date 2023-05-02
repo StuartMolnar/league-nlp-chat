@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
 from base import Base
 from challenger_matchups import ChallengerMatchup
 
@@ -81,8 +82,6 @@ class KafkaMatchups:
         None
 
     Methods:
-        process_matchup(players): Stores a challenger matchup in the database.
-        consume_messages(): Consumes messages from a Kafka topic and processes them.
         run_kafka_consumer(): Runs the Kafka consumer in a separate thread.
 
     Usage:
@@ -93,7 +92,7 @@ class KafkaMatchups:
     def __init__(self):
         logger.info('Initialize the KafkaMatchups object')
 
-    def process_matchup(self, players):
+    def __process_matchup(self, players):
         """
         Create a new challenger matchup in the database.
 
@@ -116,14 +115,14 @@ class KafkaMatchups:
                     player1_kills=player1[3],
                     player1_deaths=player1[4],
                     player1_assists=player1[5],
-                    player1_items=json.dumps(player1[6]), # Serialize player items as a JSON string before storing them in the database
+                    player1_items="| ".join(map(str, player1[6])), # Serialize player items as a comma-separated string
                     player2_name=player2[0],
                     player2_champion=player2[1],
                     player2_role=player2[2],
                     player2_kills=player2[3],
                     player2_deaths=player2[4],
                     player2_assists=player2[5],
-                    player2_items=json.dumps(player2[6]) # Serialize player items as a JSON string before storing them in the database
+                    player2_items="| ".join(map(str, player2[6])), # Serialize player items as a comma-separated string
                 )
             
                 session.add(matchup)
@@ -131,31 +130,36 @@ class KafkaMatchups:
                 session.refresh(matchup)
 
                 logger.info(f"Created matchup object: {matchup}")
+        except IntegrityError as ie:
+            logger.warning(f"Skipping matchup object due to duplicate entry: {ie}")
+            session.rollback()  # Rollback the transaction to prevent it from affecting other operations
         except Exception as e:
             logger.error(f"Failed to create matchup object: {e}", exc_info=True)
 
-    def consume_messages(self):
+    def __consume_messages(self):
         """
         Consume messages from the Kafka topic and process them.
 
         This function creates a Kafka consumer and subscribes to the configured topic.
         The consumer is set up to deserialize the received messages from JSON format.
-        It listens for new messages in the topic and calls the `process_matchup` function
+        It listens for new messages in the topic and calls the `__process_matchup` function
         for each message to store the data in the database.
         """
         try:
             logger.info('Consuming messages from kafka topic')
             consumer = KafkaConsumer(
-                topic=app_config['kafka']['topic_matchups'],
+                app_config['kafka']['topic_matchups'],
                 bootstrap_servers=app_config['kafka']['bootstrap_servers'],
                 value_deserializer=lambda m: json.loads(m.decode('utf-8')),
                 auto_offset_reset='latest',
                 enable_auto_commit=True,
                 group_id='matchups_group',
+                max_poll_interval_ms=1000,
+                max_poll_records=20,
             )
 
             for message in consumer:
-                self.process_matchup(message.value)
+                self.__process_matchup(message.value)
 
         except Exception as e:
             logger.error(f"Error consuming messages: {e}", exc_info=True)
@@ -164,5 +168,6 @@ class KafkaMatchups:
         """
         Run the Kafka consumer in a separate thread.
         """
-        kafka_consumer_thread = threading.Thread(target=self.consume_messages)
+        kafka_consumer_thread = threading.Thread(target=self.__consume_messages)
+        kafka_consumer_thread.daemon = True
         kafka_consumer_thread.start()

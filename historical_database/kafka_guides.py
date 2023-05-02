@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
 from base import Base
 from champion_guides import ChampionGuide
 
@@ -68,8 +69,6 @@ class KafkaGuides:
         None
 
     Methods:
-        process_matchup(guide: GuideData): Stores a champion guide in the database.
-        consume_messages(): Consumes messages from a Kafka topic and processes them.
         run_kafka_consumer(): Runs the Kafka consumer in a separate thread.
 
     Usage:
@@ -80,7 +79,7 @@ class KafkaGuides:
     def __init__(self):
         logger.info('Initialize the KafkaGuides object')
 
-    def process_guide(self, guide: GuideData):
+    def __process_guide(self, guide: GuideData):
         """
         Create a new champion guide in the database.
 
@@ -97,32 +96,36 @@ class KafkaGuides:
                 session.refresh(guide)
 
                 logger.info(f"Created guide object: {guide}")
+        except IntegrityError as ie:
+            logger.warning(f"Unique entry, overwriting...")
+            session.rollback()  # Rollback the transaction to prevent it from affecting other operations
         except Exception as e:
             logger.error(f"Failed to create guide object: {e}", exc_info=True)
 
-    def consume_messages(self):
+    def __consume_messages(self):
         """
         Consume messages from the Kafka topic and process them.
 
         This function creates a Kafka consumer and subscribes to the configured topic.
         The consumer is set up to deserialize the received messages from JSON format.
-        It listens for new messages in the topic and calls the `process_guide` function
+        It listens for new messages in the topic and calls the `__process_guide` function
         for each message to store the data in the database.
         """
         try:
             logger.info('Consuming messages from kafka topic')
             consumer = KafkaConsumer(
-                topic=app_config['kafka']['topic_guides'],
+                app_config['kafka']['topic_guides'],
                 bootstrap_servers=app_config['kafka']['bootstrap_servers'],
                 value_deserializer=lambda m: json.loads(m.decode('utf-8')),
                 auto_offset_reset='latest',
                 enable_auto_commit=True,
                 group_id='guides_group',
+                max_poll_interval_ms=1000,
+                max_poll_records=20,
             )
 
             for message in consumer:
-                self.process_guide(message.value)
-
+                self.__process_guide(message.value)
         except Exception as e:
             logger.error(f"Error consuming messages: {e}", exc_info=True)
 
@@ -134,5 +137,6 @@ class KafkaGuides:
         The consumer listens for new messages in the configured Kafka topic and processes
         them using the `process_matchup` method.
         """
-        kafka_consumer_thread = threading.Thread(target=self.consume_messages)
+        kafka_consumer_thread = threading.Thread(target=self.__consume_messages)
+        kafka_consumer_thread.daemon = True
         kafka_consumer_thread.start()

@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, JSON
+from sqlalchemy import Column, Integer, String, DateTime, UniqueConstraint
 
 from base import Base
 
@@ -15,15 +15,21 @@ class ChallengerMatchup(Base):
     player1_kills = Column(Integer)
     player1_deaths = Column(Integer)
     player1_assists = Column(Integer)
-    player1_items = Column(JSON)  # store as list
+    player1_items = Column(String(255))  # store as delimited string
     player1_role = Column(String(10))
     player2_name = Column(String(50))
     player2_champion = Column(String(50))
     player2_kills = Column(Integer)
     player2_deaths = Column(Integer)
     player2_assists = Column(Integer)
-    player2_items = Column(JSON)  # store as list
+    player2_items = Column(String(255))  # store as delimited string
     player2_role = Column(String(10))
+
+
+    __table_args__ = (UniqueConstraint(
+        'player1_name', 'player1_champion', 'player1_kills', 'player1_deaths', 'player1_assists',
+        'player1_items', 'player1_role', 'player2_name', 'player2_champion', 'player2_kills',
+        'player2_deaths', 'player2_assists', 'player2_items', 'player2_role', name='unique_matchup'),)
 
     def __init__(self, player1_name, player1_champion, player1_kills, player1_deaths, player1_assists, player1_items, player1_role, player2_name, player2_champion, player2_kills, player2_deaths, player2_assists, player2_items, player2_role):
         self.player1_name = player1_name

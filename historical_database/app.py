@@ -93,8 +93,28 @@ async def get_all_matchups():
     except Exception as e:
         logger.error(f"Failed to retrieve matchups: {e}", exc_info=True)
         raise e
+    
+@app.get("/guides")
+async def get_all_matchups():
+    """
+    Retrieve all champion guides from the database that were created on the same day as the request.
 
+    Returns:
+        list: A list of champion guides, where each matchup contains a text block.
+    """
+    logger.info("Retrieving all champion guides from the database")
 
+    try:
+        with session_scope() as session:
+            today = datetime.now(timezone.utc).date()  # Get the current date in UTC timezone
+            guides = session.query(ChampionGuide.guide).filter(
+                ChampionGuide.timestamp >= today  # Filter by created_at date
+            ).all()
+            return guides
+    except Exception as e:
+        logger.error(f"Failed to retrieve guides: {e}", exc_info=True)
+        raise e
+    
 if __name__ == "__main__":
     # Start the Kafka matchups consumer
     kafka_matchup = KafkaMatchups()
