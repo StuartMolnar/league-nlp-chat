@@ -2,6 +2,7 @@ import yaml
 from sqlalchemy import create_engine
 from base import Base
 from challenger_matchups import ChallengerMatchup
+from champion_guides import ChampionGuide
 
 def load_config(config_file):
     with open(config_file, 'r') as f:
@@ -18,4 +19,4 @@ DATABASE_URL = f"mysql+pymysql://{db_config['database']['username']}:{db_config[
 engine = create_engine(DATABASE_URL)
 
 # Create all defined tables
-Base.metadata.create_all(bind=engine, tables=[ChallengerMatchup.__table__])
+Base.metadata.create_all(bind=engine, tables=[ChallengerMatchup.__table__, ChampionGuide.__table__])
