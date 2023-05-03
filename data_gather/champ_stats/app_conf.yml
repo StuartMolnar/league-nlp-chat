@@ -1,0 +1,4 @@
+version: 1
+kafka:
+  bootstrap_servers: 'localhost:9092'
+  topic: 'champion_stats'

@@ -6,4 +6,5 @@ pydantic
 uvicorn
 PyYAML
 kafka-python
+pymysql
 
