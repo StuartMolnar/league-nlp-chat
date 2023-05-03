@@ -95,10 +95,11 @@ class KafkaGuides:
                 session.flush() 
                 session.refresh(guide)
 
-                logger.info(f"Created guide object: {guide}")
-        except IntegrityError as ie:
-            logger.warning(f"Unique entry, overwriting...")
-            session.rollback()  # Rollback the transaction to prevent it from affecting other operations
+                logger.info(f"Created guide object at id: {guide.id}")
+        except IntegrityError:
+            with session_scope() as session:
+                logger.warning(f"Skipping matchup object due to duplicate entry")
+                session.rollback()  # Rollback the transaction to prevent it from affecting other operations
         except Exception as e:
             logger.error(f"Failed to create guide object: {e}", exc_info=True)
 

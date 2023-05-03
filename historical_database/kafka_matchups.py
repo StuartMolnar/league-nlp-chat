@@ -129,10 +129,11 @@ class KafkaMatchups:
                 session.flush() 
                 session.refresh(matchup)
 
-                logger.info(f"Created matchup object: {matchup}")
-        except IntegrityError as ie:
-            logger.warning(f"Skipping matchup object due to duplicate entry: {ie}")
-            session.rollback()  # Rollback the transaction to prevent it from affecting other operations
+                logger.info(f"Created matchup object at id: {matchup.id}")
+        except IntegrityError:
+            with session_scope() as session:
+                logger.warning(f"Skipping matchup object due to duplicate entry")
+                session.rollback()  # Rollback the transaction to prevent it from affecting other operations
         except Exception as e:
             logger.error(f"Failed to create matchup object: {e}", exc_info=True)
 
