@@ -6,6 +6,8 @@ data-notes
 app.log*
 output.json
 
+ddragon-data-*
+
 __pycache__/
 *.pyc
 *.pyo
