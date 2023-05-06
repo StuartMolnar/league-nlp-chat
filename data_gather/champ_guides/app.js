@@ -10,6 +10,16 @@ const appConf = yaml.load(fs.readFileSync('app_conf.yml', 'utf8'));
 const kafkaClient = new kafka.KafkaClient({ kafkaHost: appConf.kafka.bootstrap_servers });
 const kafkaProducer = new kafka.Producer(kafkaClient);
 
+// const groupId = `app-consumer-group-${Date.now()}`; // Unique groupId
+// const kafkaConsumer = new kafka.ConsumerGroup(
+//   {
+//     groupId: groupId,
+//     kafkaHost: appConf.kafka.bootstrap_servers,
+//     fromOffset: 'latest', // Start consuming messages from the latest offset
+//   },
+//   appConf.kafka.topic
+// );
+
 /**
  * Extracts the text content from elements on a given Puppeteer page based on the provided CSS selector.
  * @param {Object} page - A Puppeteer page object.
@@ -51,7 +61,12 @@ async function scrapeUrls(urls) {
         logger.info(`Scraping URL ${url}`);
         try {
         await page.goto(url, { waitUntil: 'networkidle2' });
-        const textData = await extractTextFromElements(page, 'div.m-1tyqd9r');
+        let textData = await extractTextFromElements(page, 'div.m-1tyqd9r');
+        if (textData === "") {
+          logger.warning(`No text data found for URL ${url}`);
+          continue;
+        }
+        textData = `This is a guide for ${url.split('/')[5]}: ${textData}`;
         kafkaProducer.send(
           [
             {
@@ -74,6 +89,26 @@ async function scrapeUrls(urls) {
 
     await browser.close();
 }
+
+// function writeToTestLog(data) {
+//   fs.appendFile('test-log.json', JSON.stringify(data, null, 2) + ',\n', (err) => {
+//     if (err) {
+//       logger.error('Error writing to test-log.json:', err);
+//     } else {
+//       logger.info('Data written to test-log.json');
+//     }
+//   });
+// }
+
+// kafkaConsumer.on('message', (message) => {
+//   const data = JSON.parse(message.value);
+//   writeToTestLog(data);
+// });
+
+// kafkaConsumer.on('error', (err) => {
+//   logger.error('Error initializing Kafka consumer:', err);
+// });
+
 
 (async () => {
   kafkaProducer.on('ready', async () => {

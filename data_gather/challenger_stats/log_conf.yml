@@ -20,6 +20,14 @@ loggers:
     level: INFO
     handlers: [console, file]
     propagate: no
+  kafka:
+    level: INFO 
+    handlers: [console]
+    propagate: no
+  asyncio:
+    level: INFO
+    handlers: [console]
+    propagate: no
 root:
   level: DEBUG
   handlers: [console]

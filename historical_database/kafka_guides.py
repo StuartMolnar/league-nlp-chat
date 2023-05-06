@@ -98,7 +98,7 @@ class KafkaGuides:
                 logger.info(f"Created guide object at id: {guide.id}")
         except IntegrityError:
             with session_scope() as session:
-                logger.warning(f"Skipping matchup object due to duplicate entry")
+                logger.warning(f"Skipping guide object due to duplicate entry")
                 session.rollback()  # Rollback the transaction to prevent it from affecting other operations
         except Exception as e:
             logger.error(f"Failed to create guide object: {e}", exc_info=True)

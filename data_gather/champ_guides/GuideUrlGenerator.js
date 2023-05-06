@@ -38,7 +38,8 @@ class GuideUrlGenerator {
     try {
       const response = await axios.get(RIOT_API_CHAMPIONS_URL.replace('version', latestVersion));
       const champions = response.data.data;
-      return Object.values(champions).map(champion => champion.name.replace(/[^\w\s]|_/g, "").replace(/\s+/g, ""));
+      return Object.keys(champions);
+      //return Object.values(champions).map(champion => champion.name.replace(/[^\w\s]|_/g, "").replace(/\s+/g, ""));
     } catch (error) {
       logger.error(`Error fetching champion names: ${error}`);
       throw error;
