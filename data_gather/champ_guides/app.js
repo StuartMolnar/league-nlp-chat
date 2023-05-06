@@ -10,16 +10,6 @@ const appConf = yaml.load(fs.readFileSync('app_conf.yml', 'utf8'));
 const kafkaClient = new kafka.KafkaClient({ kafkaHost: appConf.kafka.bootstrap_servers });
 const kafkaProducer = new kafka.Producer(kafkaClient);
 
-// const groupId = `app-consumer-group-${Date.now()}`; // Unique groupId
-// const kafkaConsumer = new kafka.ConsumerGroup(
-//   {
-//     groupId: groupId,
-//     kafkaHost: appConf.kafka.bootstrap_servers,
-//     fromOffset: 'latest', // Start consuming messages from the latest offset
-//   },
-//   appConf.kafka.topic
-// );
-
 /**
  * Extracts the text content from elements on a given Puppeteer page based on the provided CSS selector.
  * @param {Object} page - A Puppeteer page object.
@@ -51,22 +41,26 @@ async function extractTextFromElements(page, selector) {
  * @returns {Promise<void>} - A promise that resolves when the scraping and message sending process is completed.
  */
 async function scrapeUrls(urls) {
-    logger.info(`Scraping ${urls.length} URLs`);
-    const browser = await puppeteer.launch({
-        headless: "new"
-    });
-    const page = await browser.newPage();
+  logger.info(`Scraping ${urls.length} URLs`);
+  const browser = await puppeteer.launch({
+    headless: "new"
+  });
+  const page = await browser.newPage();
+  const sendPromises = []; // Store promises for each Kafka message
 
-    for (const url of urls) {
-        logger.info(`Scraping URL ${url}`);
-        try {
-        await page.goto(url, { waitUntil: 'networkidle2' });
-        let textData = await extractTextFromElements(page, 'div.m-1tyqd9r');
-        if (textData === "") {
-          logger.warning(`No text data found for URL ${url}`);
-          continue;
-        }
-        textData = `This is a guide for ${url.split('/')[5]}: ${textData}`;
+  for (const url of urls) {
+    logger.info(`Scraping URL ${url}`);
+    try {
+      await page.goto(url, { waitUntil: 'networkidle2' });
+      let textData = await extractTextFromElements(page, 'div.m-1tyqd9r');
+      if (textData === "") {
+        logger.warning(`No text data found for URL ${url}`);
+        continue;
+      }
+      textData = `This is a guide for ${url.split('/')[5]}: ${textData}`;
+
+      // Wrap Kafka producer send call in a Promise
+      const sendPromise = new Promise((resolve, reject) => {
         kafkaProducer.send(
           [
             {
@@ -77,44 +71,36 @@ async function scrapeUrls(urls) {
           (err) => {
             if (err) {
               logger.error('Error producing message:', err);
+              reject(err);
             } else {
               logger.info('Message sent to Kafka producer');
+              resolve();
             }
           }
         );
-        } catch (error) {
-          logger.error(`Error scraping URL ${url}:`, error);
-        }
+      });
+
+      sendPromises.push(sendPromise);
+    } catch (error) {
+      logger.error(`Error scraping URL ${url}:`, error);
     }
+  }
 
-    await browser.close();
+  await browser.close();
+  return Promise.all(sendPromises); // Return a promise that resolves when all messages have been sent
 }
-
-// function writeToTestLog(data) {
-//   fs.appendFile('test-log.json', JSON.stringify(data, null, 2) + ',\n', (err) => {
-//     if (err) {
-//       logger.error('Error writing to test-log.json:', err);
-//     } else {
-//       logger.info('Data written to test-log.json');
-//     }
-//   });
-// }
-
-// kafkaConsumer.on('message', (message) => {
-//   const data = JSON.parse(message.value);
-//   writeToTestLog(data);
-// });
-
-// kafkaConsumer.on('error', (err) => {
-//   logger.error('Error initializing Kafka consumer:', err);
-// });
 
 
 (async () => {
   kafkaProducer.on('ready', async () => {
     const generator = new GuideUrlGenerator();
     const urls = await generator.generateChampionGuideUrls();
-    await scrapeUrls(urls);
+    await scrapeUrls(urls); // Wait for all messages to be sent
+
+    kafkaClient.close(() => {
+      logger.info('Kafka producer closed');
+      process.exit(0); // Exit the process
+    });
   });
 
   kafkaProducer.on('error', (err) => {

@@ -159,9 +159,9 @@ class MatchData:
         items = []
         for field in fieldsToGrab:
             if field == "teamPosition":
-                team_position = participant[field].lower()
-                if team_position == "utility":
-                    team_position = "support"
+                team_position = participant[field][0] + participant[field][1:].lower()
+                if team_position == "Utility":
+                    team_position = "Support"
                 fields.append(team_position)
             else:
                 fields.append(participant[field])
@@ -170,7 +170,16 @@ class MatchData:
             if item_name != None:
                 items.append(item_name)
 
-        player_data = fields + [items]
+        perks = []
+        if "perks" in participant and "styles" in participant["perks"]:
+            for style in participant["perks"]["styles"]:
+                if "selections" in style:
+                    for selection in style["selections"]:
+                        if "perk" in selection:
+                            perks.append(selection["perk"])
+                            logger.info(f"Found perk: {selection['perk']}")
+
+        player_data = fields + [items] + [perks]
 
         return player_data
     

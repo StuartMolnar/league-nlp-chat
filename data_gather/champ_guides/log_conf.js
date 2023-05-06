@@ -2,12 +2,19 @@ const winston = require('winston');
 const { format } = require('logform');
 
 // Create a transport for writing to the file
-const transport = new winston.transports.File({
+const fileTransport = new winston.transports.File({
   filename: `app.log`,
   format: format.printf(info => {
     return `${info.timestamp} - ${info.level.toUpperCase()} - ${info.message}`;
   }),
   maxsize: 1048576, // max size of 1MB
+});
+
+// Create a transport for logging to the console
+const consoleTransport = new winston.transports.Console({
+  format: format.printf(info => {
+    return `${info.timestamp} - ${info.level.toUpperCase()} - ${info.message}`;
+  }),
 });
 
 // Create a logger instance
@@ -22,7 +29,8 @@ const logger = winston.createLogger({
     format.json(),
   ),
   transports: [
-    transport,
+    fileTransport,
+    consoleTransport, // Add the console transport
   ],
 });
 

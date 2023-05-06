@@ -1,7 +1,7 @@
 """
 This module provides API endpoints to manage league of legends data.
 """
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi import status
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +12,8 @@ import yaml
 import json
 from datetime import datetime, timezone
 from kafka_matchups import session_scope, KafkaMatchups, ChallengerMatchup
-from kafka_guides import session_scope, KafkaGuides, ChampionGuide
+from kafka_guides import KafkaGuides, ChampionGuide
+from kafka_descriptions import RuneDescriptions, RuneDescription
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -74,33 +75,28 @@ async def get_all_matchups():
                 ChallengerMatchup.timestamp >= today  # Filter by created_at date
             ).all()
 
-            results = []
-            for matchup in matchups:
-                # Deserialize player items from JSON string before returning the data
-                player1_items = json.loads(matchup.player1_items)
-                player2_items = json.loads(matchup.player2_items)
-
-                result = {
-                    "players": [
-                        [matchup.player1_name, matchup.player1_champion, matchup.player1_role, matchup.player1_kills, matchup.player1_deaths, matchup.player1_assists, player1_items],
-                        [matchup.player2_name, matchup.player2_champion, matchup.player2_role, matchup.player2_kills, matchup.player2_deaths, matchup.player2_assists, player2_items]
-                    ]
-                }
-                results.append(result)
+            results = [
+                [
+                    [matchup.player1_name, matchup.player1_champion, matchup.player1_role, matchup.player1_kills, matchup.player1_deaths, matchup.player1_assists, matchup.player1_items],
+                    [matchup.player2_name, matchup.player2_champion, matchup.player2_role, matchup.player2_kills, matchup.player2_deaths, matchup.player2_assists, matchup.player2_items]
+                ]
+                for matchup in matchups
+            ]
 
             return results
 
     except Exception as e:
         logger.error(f"Failed to retrieve matchups: {e}", exc_info=True)
         raise e
+
     
 @app.get("/guides")
 async def get_all_matchups():
     """
-    Retrieve all champion guides from the database that were created on the same day as the request.
+    Retrieve all champion guides from the database.
 
     Returns:
-        list: A list of champion guides, where each matchup contains a text block.
+        list: A list of champion guides, where each guide contains a text block.
     """
     logger.info("Retrieving all champion guides from the database")
 
@@ -115,6 +111,56 @@ async def get_all_matchups():
         logger.error(f"Failed to retrieve guides: {e}", exc_info=True)
         raise e
     
+@app.get("/rune_descriptions")
+async def get_all_rune_descriptions():
+    """
+    Retrieve all rune descriptions from the database.
+
+    Returns:
+        list: A list of rune descriptions, where each description is a list containing information on a rune.
+    """
+    logger.info("Retrieving all rune descriptions from the database")
+
+    try:
+        with session_scope() as session:
+            rune_descriptions = session.query(RuneDescription).all()
+            return [
+                [rune_desc.id, rune_desc.tree, rune_desc.name, rune_desc.description]
+                for rune_desc in rune_descriptions
+            ]
+    except Exception as e:
+        logger.error(f"Failed to retrieve rune descriptions: {e}", exc_info=True)
+        raise e
+
+@app.get("/rune_descriptions/{rune_id}")
+async def get_rune_description_by_id(rune_id: int):
+    """
+    Retrieve a specific rune description from the database by its ID.
+
+    Args:
+        rune_id (int): The ID of the rune description.
+
+    Returns:
+        dict: A dictionary containing information on the specified rune description.
+    """
+    logger.info(f"Retrieving rune description with ID {rune_id} from the database")
+
+    try:
+        with session_scope() as session:
+            rune_desc = session.query(RuneDescription).filter(RuneDescription.id == rune_id).first()
+            if rune_desc is not None:
+                return {
+                    "id": rune_desc.id,
+                    "tree": rune_desc.tree,
+                    "name": rune_desc.name,
+                    "description": rune_desc.description
+                }
+            else:
+                raise HTTPException(status_code=404, detail=f"Rune description with ID {rune_id} not found")
+    except Exception as e:
+        logger.error(f"Failed to retrieve rune description with ID {rune_id}: {e}", exc_info=True)
+        raise e
+    
 if __name__ == "__main__":
     # Start the Kafka matchups consumer
     kafka_matchup = KafkaMatchups()
@@ -123,6 +169,10 @@ if __name__ == "__main__":
     # Start the Kafka guides consumer
     kafka_guide = KafkaGuides()
     kafka_guide.run_kafka_consumer()
+
+    # Start the rune descriptions consumer
+    rune_descriptions = RuneDescriptions()
+    rune_descriptions.run_kafka_consumer()
 
     # Start the FastAPI application
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

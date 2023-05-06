@@ -3,8 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from base import Base
-from challenger_matchups import ChallengerMatchup
-import requests
+from rune_descriptions import RuneDescription
 
 import logging
 import logging.config
@@ -56,29 +55,15 @@ def session_scope():
     finally:
         session.close()
 
-class PlayerData(BaseModel):
+class RuneData(BaseModel):
     """
-    Represents the data for a single player in a challenger matchup.
+    Represents the data for a single rune.
     """
-    name: str
-    champion: str
-    role: str
-    kills: int
-    deaths: int
-    assists: int
-    items: list[str]
-    perks: list[str]
+    guide: str
 
-class ChallengerMatchupCreate(BaseModel):
+class RuneDescriptions:
     """
-    Represents the data for a challenger matchup, including both players.
-    """
-    players: list[list[PlayerData]]
-
-
-class KafkaMatchups:
-    """
-    A class for consuming challenger matchup messages from a Kafka topic and storing them in a database.
+    A class for consuming rune description messages from a Kafka topic and storing them in a database.
 
     Attributes:
         None
@@ -87,59 +72,39 @@ class KafkaMatchups:
         run_kafka_consumer(): Runs the Kafka consumer in a separate thread.
 
     Usage:
-        kafka_matchups = KafkaMatchups()
+        kafka_descriptions = RuneDescriptions()
         
-        kafka_matchups.run_kafka_consumer()
+        kafka_descriptions.run_kafka_consumer()
     """
     def __init__(self):
-        logger.info('Initialize the KafkaMatchups object')
+        logger.info('Initialize the RuneDescriptions object')
 
-    def __process_matchup(self, players):
+    def __process_rune(self, rune: RuneData):
         """
-        Create a new challenger matchup in the database.
+        Create a new rune description in the database.
 
         Args:
-            data: A dictionary containing a single key-value pair,
-                where the key is the role and the value is a list
-                of two lists, each representing a player's data.
-
+            guide: A RuneData object containing the guide text.
         """
-        logger.info('Creating a new challenger matchup')    
-        player1 = players[0]
-        player2 = players[1]
-
         try:
             with session_scope() as session:
-                matchup = ChallengerMatchup(
-                    player1_name=player1[0],
-                    player1_champion=player1[1],
-                    player1_role=player1[2],
-                    player1_kills=player1[3],
-                    player1_deaths=player1[4],
-                    player1_assists=player1[5],
-                    player1_items="| ".join(map(str, player1[6])), # Serialize player items as a comma-separated string
-                    player1_perks="| ".join(map(str, player1[7])), # Serialize player perks as a comma-separated string
-                    player2_name=player2[0],
-                    player2_champion=player2[1],
-                    player2_role=player2[2],
-                    player2_kills=player2[3],
-                    player2_deaths=player2[4],
-                    player2_assists=player2[5],
-                    player2_items="| ".join(map(str, player2[6])), # Serialize player items as a comma-separated string
-                    player2_perks="| ".join(map(str, player2[7])) # Serialize player perks as a comma-separated string
+                rune = RuneDescription(
+                    id=rune[0],
+                    tree=rune[1],
+                    name=rune[2],
+                    description=rune[3]
                 )
-            
-                session.add(matchup)
+                session.add(rune)
                 session.flush() 
-                session.refresh(matchup)
+                session.refresh(rune)
 
-                logger.info(f"Created matchup object at id: {matchup.id}")
+                logger.info(f"Created rune object with id: {rune.id}")
         except IntegrityError:
             with session_scope() as session:
-                logger.warning(f"Skipping matchup object due to duplicate entry")
+                logger.warning(f"Skipping rune object due to duplicate entry")
                 session.rollback()  # Rollback the transaction to prevent it from affecting other operations
         except Exception as e:
-            logger.error(f"Failed to create matchup object: {e}", exc_info=True)
+            logger.error(f"Failed to create rune object: {e}", exc_info=True)
 
     def __consume_messages(self):
         """
@@ -147,31 +112,34 @@ class KafkaMatchups:
 
         This function creates a Kafka consumer and subscribes to the configured topic.
         The consumer is set up to deserialize the received messages from JSON format.
-        It listens for new messages in the topic and calls the `__process_matchup` function
+        It listens for new messages in the topic and calls the `__process_rune` function
         for each message to store the data in the database.
         """
         try:
             logger.info('Consuming messages from kafka topic')
             consumer = KafkaConsumer(
-                app_config['kafka']['topic_matchups'],
+                app_config['kafka']['topic_runes'],
                 bootstrap_servers=app_config['kafka']['bootstrap_servers'],
                 value_deserializer=lambda m: json.loads(m.decode('utf-8')),
                 auto_offset_reset='latest',
                 enable_auto_commit=True,
-                group_id='matchups_group',
+                group_id='runes_group',
                 max_poll_interval_ms=1000,
                 max_poll_records=20,
             )
 
             for message in consumer:
-                self.__process_matchup(message.value)
-
+                self.__process_rune(message.value)
         except Exception as e:
             logger.error(f"Error consuming messages: {e}", exc_info=True)
 
     def run_kafka_consumer(self):
         """
         Run the Kafka consumer in a separate thread.
+
+        This function creates a new thread for the Kafka consumer and starts it.
+        The consumer listens for new messages in the configured Kafka topic and processes
+        them using the `process_matchup` method.
         """
         kafka_consumer_thread = threading.Thread(target=self.__consume_messages)
         kafka_consumer_thread.daemon = True

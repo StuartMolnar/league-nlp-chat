@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from base import Base
 from challenger_matchups import ChallengerMatchup
 from champion_guides import ChampionGuide
+from rune_descriptions import RuneDescription
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -29,6 +30,6 @@ logger.info("Creating all tables")
 engine = create_engine(DATABASE_URL)
 
 # Create all defined tables
-Base.metadata.create_all(bind=engine, tables=[ChallengerMatchup.__table__, ChampionGuide.__table__])
+Base.metadata.create_all(bind=engine, tables=[ChallengerMatchup.__table__, ChampionGuide.__table__, RuneDescription.__table__])
 
 logger.info("Tables created successfully")
