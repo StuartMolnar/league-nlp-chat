@@ -159,7 +159,7 @@ class DDragonRunes:
             topic (str): The Kafka topic to send the cleaned rune data to.
         """
         for rune in self.rune_data:
-            logger.info(f"Sending rune to {topic}: {rune}")
+            logger.info(f"Sending rune to {topic}")
             producer.send(topic, rune)
 
     def produce_rune_data(self, topic):

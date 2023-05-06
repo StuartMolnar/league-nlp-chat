@@ -9,18 +9,19 @@ handlers:
     formatter: simple
     stream: ext://sys.stdout
   file:
-    class: logging.handlers.RotatingFileHandler
+    class: truncating_log_handler.TruncatingLogHandler
+    encoding: utf-8
     level: DEBUG
     formatter: simple
     filename: app.log
     maxBytes: 1048576  # 1 MB
 loggers:
   basicLogger:
-    level: DEBUG
+    level: INFO
     handlers: [console, file]
     propagate: no
   kafka:
-    level: INFO
+    level: INFO 
     handlers: [console]
     propagate: no
   asyncio:

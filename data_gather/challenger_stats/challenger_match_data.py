@@ -177,7 +177,6 @@ class MatchData:
                     for selection in style["selections"]:
                         if "perk" in selection:
                             perks.append(selection["perk"])
-                            logger.info(f"Found perk: {selection['perk']}")
 
         player_data = fields + [items] + [perks]
 
