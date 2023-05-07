@@ -58,7 +58,7 @@ async function scrapeUrls(urls) {
       await page.goto(url, { waitUntil: 'networkidle2' });
       let textData = await extractTextFromElements(page, 'div.m-1tyqd9r');
       if (textData === "") {
-        logger.warning(`No text data found for URL ${url}`);
+        logger.error(`No text data found for URL ${url}`);
         continue;
       }
       const championName = url.split('/')[5];

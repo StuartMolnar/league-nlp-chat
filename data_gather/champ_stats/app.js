@@ -20,18 +20,18 @@ const kafkaConsumer = new kafka.Consumer(kafkaClient, [{ topic: appConf.kafka.to
  * @throws Will throw an error if there's an issue with extracting the text content.
  */
 async function extractTextFromElements(page, selector) {
-    console.log(`Extracting text from selector ${selector}`);
+    logger.info(`Extracting text from selector ${selector}`);
   
     try {
         const element = await page.$(`#${selector}`);
         if (!element) {
-            console.log(`No element found with ID: ${selector}`);
+            logger.info(`No element found with ID: ${selector}`);
             return null;
         }
         const textContent = await page.evaluate((el) => el.textContent, element);
         return textContent;
     } catch (error) {
-        console.error(`Error extracting text from elements: ${error}`);
+        logger.error(`Error extracting text from elements: ${error}`);
         throw error;
     }
 }
