@@ -3,12 +3,12 @@ const logger = require('./log_conf');
 
 const RIOT_API_VERSIONS_URL = 'https://ddragon.leagueoflegends.com/api/versions.json';
 const RIOT_API_CHAMPIONS_URL = 'http://ddragon.leagueoflegends.com/cdn/version/data/en_US/champion.json';
-const RUNES_URL = 'https://runes.lol/champion/name/runes/';
+const STATS_URL = 'https://www.leagueofgraphs.com/champions/stats/name';
 
 /**
  * A class to generate Mobalytics guide URLs for League of Legends champions.
  */
-class RuneUrlGenerator {
+class StatUrlGenerator {
   /**
    * Fetches the latest version of the Riot Data Dragon API.
    * @private
@@ -39,8 +39,8 @@ class RuneUrlGenerator {
       const response = await axios.get(RIOT_API_CHAMPIONS_URL.replace('version', latestVersion));
       const champions = response.data.data;
 
-      // Map over the champion keys, replacing "monkeyking" with "wukong"
-      const championNames = Object.keys(champions).map(name => name === 'MonkeyKing' ? 'wukong' : name.toLowerCase());
+      // Map over the champion keys
+      const championNames = Object.keys(champions).map(name => name.toLowerCase());
 
       return championNames;
     } catch (error) {
@@ -54,12 +54,12 @@ class RuneUrlGenerator {
    * @public
    * @returns {Promise<string[]>} An array of Mobalytics guide URLs.
    */
-  async generateChampionRuneUrls() {
-    logger.info('Generating Runes.lol URLs for every champion');
+  async generateChampionStatUrls() {
+    logger.info('Generating leagueofgraphs champion stat URLs for every champion');
     const championNames = await this.#getAllChampionNames();
-    return championNames.map(championName => RUNES_URL.replace('name', championName));
+    return championNames.map(championName => STATS_URL.replace('name', championName));
   }
 }
 
-module.exports = RuneUrlGenerator;
+module.exports = StatUrlGenerator;
 

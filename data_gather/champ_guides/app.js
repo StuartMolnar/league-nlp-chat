@@ -11,10 +11,12 @@ const kafkaClient = new kafka.KafkaClient({ kafkaHost: appConf.kafka.bootstrap_s
 const kafkaProducer = new kafka.Producer(kafkaClient);
 
 /**
- * Extracts the text content from elements on a given Puppeteer page based on the provided CSS selector.
- * @param {Object} page - A Puppeteer page object.
- * @param {string} selector - The CSS selector to identify the target elements on the page.
- * @returns {Promise<string>} - A promise that resolves to the extracted text content joined by newlines.
+ * Extracts the text content of elements with a specified selector from the given page.
+ * 
+ * @param {Object} page - Puppeteer's Page object representing the web page to extract the text content from.
+ * @param {string} selector - The CSS selector of the elements to extract the text content from.
+ * @returns {Promise<string>} A Promise that resolves to the extracted text content joined with newlines.
+ * @throws Will throw an error if there's an issue with extracting the text content.
  */
 async function extractTextFromElements(page, selector) {
     logger.info(`Extracting text from selector ${selector}`);
@@ -36,9 +38,11 @@ async function extractTextFromElements(page, selector) {
   }
 
 /**
- * Scrapes the provided URLs using a headless Puppeteer browser instance, extracts text from the web pages, and sends the extracted text as messages to a Kafka topic.
- * @param {string[]} urls - An array of URLs to be scraped.
- * @returns {Promise<void>} - A promise that resolves when the scraping and message sending process is completed.
+ * Scrapes specified URLs for guide text data and champion names, then sends the extracted data to a Kafka topic.
+ * 
+ * @param {string[]} urls - An array of URLs to scrape for guide text data and champion names.
+ * @returns {Promise} A Promise that resolves when all messages are sent to Kafka or rejects if there's an issue with sending the messages.
+ * @throws Will throw an error if there's an issue with scraping a URL.
  */
 async function scrapeUrls(urls) {
   logger.info(`Scraping ${urls.length} URLs`);
@@ -81,8 +85,9 @@ async function scrapeUrls(urls) {
       });
 
       sendPromises.push(sendPromise);
-    } catch (error) {
-      logger.error(`Error scraping URL ${url}:`, error);
+    } catch (err) {
+      logger.error(`Error scraping URL ${url}:`, err);
+      throw err;
     }
   }
 
