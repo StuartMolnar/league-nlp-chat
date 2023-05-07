@@ -57,7 +57,7 @@ async function scrapeUrls(urls) {
         logger.warning(`No text data found for URL ${url}`);
         continue;
       }
-      textData = `This is a guide for ${url.split('/')[5]}: ${textData}`;
+      const championName = url.split('/')[5];
 
       // Wrap Kafka producer send call in a Promise
       const sendPromise = new Promise((resolve, reject) => {
@@ -65,7 +65,7 @@ async function scrapeUrls(urls) {
           [
             {
               topic: appConf.kafka.topic,
-              messages: JSON.stringify(textData),
+              messages: JSON.stringify({ champion: championName, guide: textData }),
             },
           ],
           (err) => {

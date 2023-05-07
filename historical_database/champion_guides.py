@@ -11,11 +11,11 @@ class ChampionGuide(Base):
     __tablename__ = "champion_guides"
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    champion = Column(String(100))
     guide = Column(Text(20000))
-    guide_hash = Column(String(64))
 
-    __table_args__ = (UniqueConstraint('guide_hash', name='unique_guide'),)
+    __table_args__ = (UniqueConstraint('champion', name='unique_guide'),)
 
-    def __init__(self, guide):
+    def __init__(self, champion, guide):
+        self.champion = champion
         self.guide = guide
-        self.guide_hash = hashlib.sha256(guide.encode('utf-8')).hexdigest()

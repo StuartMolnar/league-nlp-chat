@@ -59,7 +59,9 @@ class GuideData(BaseModel):
     """
     Represents the data for a single champion guide.
     """
+    champion: str
     guide: str
+
 
 class KafkaGuides:
     """
@@ -79,17 +81,18 @@ class KafkaGuides:
     def __init__(self):
         logger.info('Initialize the KafkaGuides object')
 
-    def __process_guide(self, guide: GuideData):
+    def __process_guide(self, guide_data: GuideData):
         """
         Create a new champion guide in the database.
 
         Args:
-            guide: A GuideData object containing the guide text.
+            guide_data: A GuideData object containing the champion name and guide text.
         """
         try:
             with session_scope() as session:
                 guide = ChampionGuide(
-                    guide=guide
+                    champion=guide_data.champion,
+                    guide=guide_data.guide
                 )
                 session.add(guide)
                 session.flush() 
@@ -126,7 +129,8 @@ class KafkaGuides:
             )
 
             for message in consumer:
-                self.__process_guide(message.value)
+                guide_data = GuideData(**message.value)  # Parse the dictionary into a GuideData object
+                self.__process_guide(guide_data)
         except Exception as e:
             logger.error(f"Error consuming messages: {e}", exc_info=True)
 
