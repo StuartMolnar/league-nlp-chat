@@ -55,9 +55,9 @@ def session_scope():
     finally:
         session.close()
 
-class RuneData(BaseModel):
+class DescriptionData(BaseModel):
     """
-    Represents the data for a single rune.
+    Represents the data for a single rune description.
     """
     guide: str
 
@@ -79,32 +79,32 @@ class KafkaDescriptions:
     def __init__(self):
         logger.info('Initialize the KafkaDescriptions object')
 
-    def __process_rune(self, rune: RuneData):
+    def __process_description(self, description: DescriptionData):
         """
-        Create a new rune description in the database.
+        Create a new description description in the database.
 
         Args:
-            guide: A RuneData object containing the guide text.
+            guide: A descriptionData object containing the guide text.
         """
         try:
             with session_scope() as session:
-                rune = RuneDescription(
-                    id=rune[0],
-                    tree=rune[1],
-                    name=rune[2],
-                    description=rune[3]
+                description = DescriptionData(
+                    id=description[0],
+                    tree=description[1],
+                    name=description[2],
+                    description=description[3]
                 )
-                session.add(rune)
+                session.add(description)
                 session.flush() 
-                session.refresh(rune)
+                session.refresh(description)
 
-                logger.info(f"Created rune object with id: {rune.id}")
+                logger.info(f"Created description object with id: {description.id}")
         except IntegrityError:
             with session_scope() as session:
-                logger.warning(f"Skipping rune object due to duplicate entry")
+                logger.warning(f"Skipping description object due to duplicate entry")
                 session.rollback()  # Rollback the transaction to prevent it from affecting other operations
         except Exception as e:
-            logger.error(f"Failed to create rune object: {e}", exc_info=True)
+            logger.error(f"Failed to create description object: {e}", exc_info=True)
 
     def __consume_messages(self):
         """
@@ -112,7 +112,7 @@ class KafkaDescriptions:
 
         This function creates a Kafka consumer and subscribes to the configured topic.
         The consumer is set up to deserialize the received messages from JSON format.
-        It listens for new messages in the topic and calls the `__process_rune` function
+        It listens for new messages in the topic and calls the `__process_description` function
         for each message to store the data in the database.
         """
         try:
@@ -129,7 +129,7 @@ class KafkaDescriptions:
             )
 
             for message in consumer:
-                self.__process_rune(message.value)
+                self.__process_description(message.value)
             else:
                 logger.warning('Received an empty message, skipping')
         except Exception as e:
@@ -141,7 +141,7 @@ class KafkaDescriptions:
 
         This function creates a new thread for the Kafka consumer and starts it.
         The consumer listens for new messages in the configured Kafka topic and processes
-        them using the `process_matchup` method.
+        them using the `process_description` method.
         """
         kafka_consumer_thread = threading.Thread(target=self.__consume_messages)
         kafka_consumer_thread.daemon = True

@@ -72,6 +72,13 @@ class DDragonRunes:
         versions = json.loads(response.text)
         return versions[0]
     
+    def __clean_up(self, version):
+        """
+        Removes the downloaded DDragon assets.
+        """
+        logger.info("Cleaning up ddragon data assets")
+        shutil.rmtree(f"ddragon-data-{version}")
+    
     def __is_newer_version(self):
         """
         Compares the latest version of DDragon with the version in the current data file.
@@ -98,6 +105,7 @@ class DDragonRunes:
         # Compare the version number from the file name to the latest version
         if self.version > current_version:
             logger.info("Version is newer than the one in the file")
+            self.__clean_up(current_version)
             return True
         
         logger.info("Version is equal to or older than the one in the file")
@@ -177,10 +185,4 @@ class DDragonRunes:
         # Flush the Kafka producer to ensure all messages are sent
         producer.flush()
     
-    def __clean_up(self):
-        """
-        Removes the downloaded DDragon assets.
-        """
-        logger.info("Cleaning up ddragon data assets")
-        shutil.rmtree(f"ddragon-data-{self.version}")
 

@@ -129,7 +129,7 @@ class KafkaGuides:
             )
 
             for message in consumer:
-                guide_data = GuideData(**message.value)  # Parse the dictionary into a GuideData object
+                guide_data = GuideData(**message.value)
                 self.__process_guide(guide_data)
         except Exception as e:
             logger.error(f"Error consuming messages: {e}", exc_info=True)
@@ -140,7 +140,7 @@ class KafkaGuides:
 
         This function creates a new thread for the Kafka consumer and starts it.
         The consumer listens for new messages in the configured Kafka topic and processes
-        them using the `process_matchup` method.
+        them using the `process_guide` method.
         """
         kafka_consumer_thread = threading.Thread(target=self.__consume_messages)
         kafka_consumer_thread.daemon = True

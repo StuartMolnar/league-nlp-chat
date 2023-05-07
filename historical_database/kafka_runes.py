@@ -57,8 +57,9 @@ def session_scope():
 
 class RuneData(BaseModel):
     """
-    Represents the data for a single champion guide.
+    Represents the data for a single champion top runes list.
     """
+    champion: str
     runes: str
 
 class KafkaRunes:
@@ -79,29 +80,30 @@ class KafkaRunes:
     def __init__(self):
         logger.info('Initialize the KafkaRunes object')
 
-    def __process_runes(self, runes: RuneData):
+    def __process_runes(self, rune_data: RuneData):
         """
-        Create a new champion guide in the database.
+        Create a new top runes list in the database.
 
         Args:
-            guide: A GuideData object containing the guide text.
+            guide: A RuneData object containing the runes list.
         """
         try:
             with session_scope() as session:
                 runes = TopRunes(
-                    runes=runes
+                    champion=rune_data.champion,
+                    runes=rune_data.runes
                 )
                 session.add(runes)
                 session.flush() 
                 session.refresh(runes)
 
-                logger.info(f"Created guide object at id: {runes.id}")
+                logger.info(f"Created runes object at id: {runes.id}")
         except IntegrityError:
             with session_scope() as session:
-                logger.warning(f"Skipping guide object due to duplicate entry")
+                logger.warning(f"Skipping runes object due to duplicate entry")
                 session.rollback()  # Rollback the transaction to prevent it from affecting other operations
         except Exception as e:
-            logger.error(f"Failed to create guide object: {e}", exc_info=True)
+            logger.error(f"Failed to create runes object: {e}", exc_info=True)
 
     def __consume_messages(self):
         """
@@ -124,16 +126,9 @@ class KafkaRunes:
                 max_poll_interval_ms=1000,
                 max_poll_records=20,
             )
-            logger.info(f"Subscribed to topic: {app_config['kafka']['topic_runes']}")
-            logger.info(f"Kafka consumer created: {consumer}")
             for message in consumer:
-                if message.value:
-                    try:
-                        self.__process_runes(message.value)
-                    except json.JSONDecodeError as e:
-                        logger.error(f"Error deserializing message: {e}", exc_info=True)
-                else:
-                    logger.warning('Received an empty message, skipping')
+                rune_data = RuneData(**message.value)
+                self.__process_runes(rune_data)
         except Exception as e:
             logger.error(f"Error consuming messages: {e}", exc_info=True)
 
@@ -144,7 +139,7 @@ class KafkaRunes:
 
         This function creates a new thread for the Kafka consumer and starts it.
         The consumer listens for new messages in the configured Kafka topic and processes
-        them using the `process_matchup` method.
+        them using the `process_runes` method.
         """
         kafka_consumer_thread = threading.Thread(target=self.__consume_messages)
         kafka_consumer_thread.daemon = True

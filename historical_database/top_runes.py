@@ -11,9 +11,11 @@ class TopRunes(Base):
     __tablename__ = "top_runes"
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    champion = Column(String(100))
     runes = Column(String(500))
 
-    __table_args__ = (UniqueConstraint('runes', name='unique_guide'),)
+    __table_args__ = (UniqueConstraint('champion', name='unique_guide'),)
 
-    def __init__(self, runes):
+    def __init__(self, champion, runes):
+        self.champion = champion
         self.runes = runes

@@ -50,13 +50,16 @@ async function scrapeUrls(urls) {
         try {
             await page.goto(url, { waitUntil: ['domcontentloaded', 'networkidle2'] });
             let runeData = await extractTextFromElements(page, 'Rune_title');
+            let championName = url.split('/')[4];
+            championName = championName.charAt(0).toUpperCase() + championName.slice(1);
+
             if (runeData !== "") {
               const sendPromise = new Promise((resolve, reject) => {
                 kafkaProducer.send(
                   [
                     {
                       topic: appConf.kafka.topic,
-                      messages: JSON.stringify(runeData),
+                      messages: JSON.stringify({ champion: championName, runes: runeData}),
                     },
                   ],
                   (err, data) => {
@@ -65,6 +68,7 @@ async function scrapeUrls(urls) {
                       reject(err);
                     } else {
                       logger.info(`Sent message to Kafka`);
+                      resolve();
                     }
                   }
                 );
@@ -74,7 +78,6 @@ async function scrapeUrls(urls) {
               logger.error(`No text data found for URL ${url}`);
               continue;
             }
-            runeData = `These are runes for ${url.split('/')[4]}: ${runeData}`;
 
             
         } catch (err) {
@@ -82,6 +85,7 @@ async function scrapeUrls(urls) {
         }
     }
     await browser.close();
+    return Promise.all(sendPromises);
 }
 
 (async () => {

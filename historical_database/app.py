@@ -164,20 +164,20 @@ async def get_rune_description_by_id(rune_id: int):
     
 if __name__ == "__main__":
     # # Start the Kafka matchups consumer
-    # kafka_matchup = KafkaMatchups()
-    # kafka_matchup.run_kafka_consumer()
+    kafka_matchup = KafkaMatchups()
+    kafka_matchup.run_kafka_consumer()
 
     # Start the Kafka guides consumer
     kafka_guide = KafkaGuides()
     kafka_guide.run_kafka_consumer()
 
     # # Start the rune descriptions consumer
-    # rune_descriptions = KafkaDescriptions()
-    # rune_descriptions.run_kafka_consumer()
+    rune_descriptions = KafkaDescriptions()
+    rune_descriptions.run_kafka_consumer()
 
     # Start the top runes consumer
-    # top_runes = KafkaRunes()
-    # top_runes.run_kafka_consumer()
+    top_runes = KafkaRunes()
+    top_runes.run_kafka_consumer()
 
     # Start the FastAPI application
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

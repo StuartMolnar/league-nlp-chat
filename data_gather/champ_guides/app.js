@@ -87,7 +87,7 @@ async function scrapeUrls(urls) {
   }
 
   await browser.close();
-  return Promise.all(sendPromises); // Return a promise that resolves when all messages have been sent
+  return Promise.all(sendPromises);
 }
 
 
@@ -95,11 +95,11 @@ async function scrapeUrls(urls) {
   kafkaProducer.on('ready', async () => {
     const generator = new GuideUrlGenerator();
     const urls = await generator.generateChampionGuideUrls();
-    await scrapeUrls(urls); // Wait for all messages to be sent
+    await scrapeUrls(urls);
 
     kafkaClient.close(() => {
       logger.info('Kafka producer closed');
-      process.exit(0); // Exit the process
+      process.exit(0);
     });
   });
 

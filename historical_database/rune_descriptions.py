@@ -7,7 +7,7 @@ class RuneDescription(Base):
     """
     A class representing a challenger matchup in a League of Legends game.
     """
-    __tablename__ = "rune_de"
+    __tablename__ = "rune_descriptions"
     id = Column(Integer, primary_key=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
     tree = Column(String(50))
