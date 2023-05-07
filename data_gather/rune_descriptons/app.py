@@ -2,6 +2,7 @@ import yaml
 import logging
 import logging.config
 from ddragon_runes import DDragonRunes
+from truncating_log_handler import TruncatingLogHandler
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())

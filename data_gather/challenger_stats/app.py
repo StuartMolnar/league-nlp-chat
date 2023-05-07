@@ -4,6 +4,7 @@ from challenger_match_data import MatchData
 import logging
 import logging.config
 import yaml
+from truncating_log_handler import TruncatingLogHandler
 
 
 with open('app_conf.yml', 'r') as f:

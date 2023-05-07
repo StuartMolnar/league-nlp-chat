@@ -9,4 +9,5 @@ kafka:
   bootstrap_servers: 'localhost:9092'
   topic_matchups: 'challenger_matchups'
   topic_guides: 'champion_guides'
-  topic_runes: 'rune_descriptions'
+  topic_descriptions: 'rune_descriptions'
+  topic_runes: 'top_runes'

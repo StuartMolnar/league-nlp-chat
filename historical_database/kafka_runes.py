@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from base import Base
-from rune_descriptions import RuneDescription
+from top_runes import TopRunes
 
 import logging
 import logging.config
@@ -57,13 +57,13 @@ def session_scope():
 
 class RuneData(BaseModel):
     """
-    Represents the data for a single rune.
+    Represents the data for a single champion guide.
     """
-    guide: str
+    runes: str
 
-class KafkaDescriptions:
+class KafkaRunes:
     """
-    A class for consuming rune description messages from a Kafka topic and storing them in a database.
+    A class for consuming champion top runes messages from a Kafka topic and storing them in a database.
 
     Attributes:
         None
@@ -72,39 +72,36 @@ class KafkaDescriptions:
         run_kafka_consumer(): Runs the Kafka consumer in a separate thread.
 
     Usage:
-        kafka_descriptions = KafkaDescriptions()
+        kafka_runes = KafkaRunes()
         
-        kafka_descriptions.run_kafka_consumer()
+        kafka_runes.run_kafka_consumer()
     """
     def __init__(self):
-        logger.info('Initialize the KafkaDescriptions object')
+        logger.info('Initialize the KafkaRunes object')
 
-    def __process_rune(self, rune: RuneData):
+    def __process_runes(self, runes: RuneData):
         """
-        Create a new rune description in the database.
+        Create a new champion guide in the database.
 
         Args:
-            guide: A RuneData object containing the guide text.
+            guide: A GuideData object containing the guide text.
         """
         try:
             with session_scope() as session:
-                rune = RuneDescription(
-                    id=rune[0],
-                    tree=rune[1],
-                    name=rune[2],
-                    description=rune[3]
+                runes = TopRunes(
+                    runes=runes
                 )
-                session.add(rune)
+                session.add(runes)
                 session.flush() 
-                session.refresh(rune)
+                session.refresh(runes)
 
-                logger.info(f"Created rune object with id: {rune.id}")
+                logger.info(f"Created guide object at id: {runes.id}")
         except IntegrityError:
             with session_scope() as session:
-                logger.warning(f"Skipping rune object due to duplicate entry")
+                logger.warning(f"Skipping guide object due to duplicate entry")
                 session.rollback()  # Rollback the transaction to prevent it from affecting other operations
         except Exception as e:
-            logger.error(f"Failed to create rune object: {e}", exc_info=True)
+            logger.error(f"Failed to create guide object: {e}", exc_info=True)
 
     def __consume_messages(self):
         """
@@ -112,28 +109,34 @@ class KafkaDescriptions:
 
         This function creates a Kafka consumer and subscribes to the configured topic.
         The consumer is set up to deserialize the received messages from JSON format.
-        It listens for new messages in the topic and calls the `__process_rune` function
+        It listens for new messages in the topic and calls the `__process_runes` function
         for each message to store the data in the database.
         """
         try:
             logger.info('Consuming messages from kafka topic')
             consumer = KafkaConsumer(
-                app_config['kafka']['topic_descriptions'],
+                app_config['kafka']['topic_runes'],
                 bootstrap_servers=app_config['kafka']['bootstrap_servers'],
                 value_deserializer=lambda m: json.loads(m.decode('utf-8')),
                 auto_offset_reset='latest',
                 enable_auto_commit=True,
-                group_id='descriptions_group',
+                group_id='test_group',
                 max_poll_interval_ms=1000,
                 max_poll_records=20,
             )
-
+            logger.info(f"Subscribed to topic: {app_config['kafka']['topic_runes']}")
+            logger.info(f"Kafka consumer created: {consumer}")
             for message in consumer:
-                self.__process_rune(message.value)
-            else:
-                logger.warning('Received an empty message, skipping')
+                if message.value:
+                    try:
+                        self.__process_runes(message.value)
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Error deserializing message: {e}", exc_info=True)
+                else:
+                    logger.warning('Received an empty message, skipping')
         except Exception as e:
             logger.error(f"Error consuming messages: {e}", exc_info=True)
+
 
     def run_kafka_consumer(self):
         """

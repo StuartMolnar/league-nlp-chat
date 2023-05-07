@@ -1,7 +1,7 @@
 """
 This module provides API endpoints to manage league of legends data.
 """
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi import status
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,10 +10,12 @@ import logging
 import logging.config
 import yaml
 import json
+from truncating_log_handler import TruncatingLogHandler
 from datetime import datetime, timezone
 from kafka_matchups import session_scope, KafkaMatchups, ChallengerMatchup
 from kafka_guides import KafkaGuides, ChampionGuide
-from kafka_descriptions import RuneDescriptions, RuneDescription
+from kafka_descriptions import KafkaDescriptions, RuneDescription
+from kafka_runes import KafkaRunes, TopRunes
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -25,15 +27,6 @@ with open('app_conf.yml', 'r') as f:
     app_config = yaml.safe_load(f.read())
 
 app = FastAPI()
-
-# Allow CORS requests
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 @app.exception_handler(Exception)
 async def handle_internal_server_error(exc: Exception):
@@ -55,13 +48,22 @@ async def handle_internal_server_error(exc: Exception):
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"message": "Internal server error", "detail": str(exc)},
     )
+
 app = FastAPI(exception_handlers={Exception: handle_internal_server_error})  
 
+# Allow CORS requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/matchups")
 async def get_all_matchups():
     """
-    Retrieve all challenger matchups from the database that were created on the same day as the request.
+    Retrieve all challenger matchups from the database that were created on the same UTC day as the request.
 
     Returns:
         list: A list of challenger matchups, where each matchup contains data for both players.
@@ -88,10 +90,9 @@ async def get_all_matchups():
     except Exception as e:
         logger.error(f"Failed to retrieve matchups: {e}", exc_info=True)
         raise e
-
     
 @app.get("/guides")
-async def get_all_matchups():
+async def get_all_guides():
     """
     Retrieve all champion guides from the database.
 
@@ -110,7 +111,7 @@ async def get_all_matchups():
     except Exception as e:
         logger.error(f"Failed to retrieve guides: {e}", exc_info=True)
         raise e
-    
+
 @app.get("/rune_descriptions")
 async def get_all_rune_descriptions():
     """
@@ -162,17 +163,21 @@ async def get_rune_description_by_id(rune_id: int):
         raise e
     
 if __name__ == "__main__":
-    # Start the Kafka matchups consumer
-    kafka_matchup = KafkaMatchups()
-    kafka_matchup.run_kafka_consumer()
+    # # Start the Kafka matchups consumer
+    # kafka_matchup = KafkaMatchups()
+    # kafka_matchup.run_kafka_consumer()
 
     # Start the Kafka guides consumer
     kafka_guide = KafkaGuides()
     kafka_guide.run_kafka_consumer()
 
-    # Start the rune descriptions consumer
-    rune_descriptions = RuneDescriptions()
-    rune_descriptions.run_kafka_consumer()
+    # # Start the rune descriptions consumer
+    # rune_descriptions = KafkaDescriptions()
+    # rune_descriptions.run_kafka_consumer()
+
+    # Start the top runes consumer
+    # top_runes = KafkaRunes()
+    # top_runes.run_kafka_consumer()
 
     # Start the FastAPI application
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

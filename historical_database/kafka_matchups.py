@@ -165,6 +165,8 @@ class KafkaMatchups:
 
             for message in consumer:
                 self.__process_matchup(message.value)
+            else:
+                logger.warning('Received an empty message, skipping')
 
         except Exception as e:
             logger.error(f"Error consuming messages: {e}", exc_info=True)
