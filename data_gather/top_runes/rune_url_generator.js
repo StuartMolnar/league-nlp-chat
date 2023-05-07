@@ -8,7 +8,7 @@ const RUNES_URL = 'https://runes.lol/champion/name/runes/';
 /**
  * A class to generate Mobalytics guide URLs for League of Legends champions.
  */
-class GuideUrlGenerator {
+class RuneUrlGenerator {
   /**
    * Fetches the latest version of the Riot Data Dragon API.
    * @private
@@ -61,5 +61,5 @@ class GuideUrlGenerator {
   }
 }
 
-module.exports = GuideUrlGenerator;
+module.exports = RuneUrlGenerator;
 

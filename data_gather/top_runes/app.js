@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
 const kafka = require('kafka-node');
-const GuideUrlGenerator = require('./guide_url_generator');
+const RuneUrlGenerator = require('./rune_url_generator');
 const logger = require('./log_conf');
 const fs = require('fs');
 const yaml = require('js-yaml');
@@ -90,7 +90,7 @@ async function scrapeUrls(urls) {
 
 (async () => {
   kafkaProducer.on('ready', async () => {
-    const generator = new GuideUrlGenerator();
+    const generator = new RuneUrlGenerator();
     const urls = await generator.generateChampionRuneUrls();
     await scrapeUrls(urls);
 
