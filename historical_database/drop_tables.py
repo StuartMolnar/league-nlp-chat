@@ -6,6 +6,7 @@ import logging.config
 from challenger_matchups import ChallengerMatchup
 from champion_guides import ChampionGuide
 from top_runes import TopRunes
+from champion_stats import ChampStats
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())

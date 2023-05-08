@@ -90,19 +90,23 @@ class KafkaGuides:
         """
         try:
             with session_scope() as session:
-                guide = ChampionGuide(
-                    champion=guide_data.champion,
-                    guide=guide_data.guide
-                )
-                session.add(guide)
-                session.flush() 
-                session.refresh(guide)
+                # Check if an entry with the same champion already exists
+                existing_guide = session.query(ChampionGuide).filter_by(champion=guide_data.champion).one_or_none()
 
-                logger.info(f"Created guide object at id: {guide.id}")
-        except IntegrityError:
-            with session_scope() as session:
-                logger.warning(f"Skipping guide object due to duplicate entry")
-                session.rollback()  # Rollback the transaction to prevent it from affecting other operations
+                if existing_guide:
+                    # Update the existing entry
+                    existing_guide.guide = guide_data.guide
+                    logger.info(f"Updated guide object for champion: {existing_guide.champion}")
+                else:
+                    # Create a new entry
+                    guide = ChampionGuide(
+                        champion=guide_data.champion,
+                        guide=guide_data.guide
+                    )
+                    session.add(guide)
+                    session.flush()
+                    session.refresh(guide)
+                    logger.info(f"Created guide object at id: {guide.id}")
         except Exception as e:
             logger.error(f"Failed to create guide object: {e}", exc_info=True)
 

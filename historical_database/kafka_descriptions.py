@@ -59,7 +59,10 @@ class DescriptionData(BaseModel):
     """
     Represents the data for a single rune description.
     """
-    guide: str
+    id: int
+    tree: str
+    name: str
+    description: str
 
 class KafkaDescriptions:
     """
@@ -88,21 +91,27 @@ class KafkaDescriptions:
         """
         try:
             with session_scope() as session:
-                description = DescriptionData(
-                    id=description[0],
-                    tree=description[1],
-                    name=description[2],
-                    description=description[3]
-                )
-                session.add(description)
-                session.flush() 
-                session.refresh(description)
+                # Check if an entry with the same ID already exists
+                existing_entry = session.query(RuneDescription).filter_by(id=description[0]).one_or_none()
 
-                logger.info(f"Created description object with id: {description.id}")
-        except IntegrityError:
-            with session_scope() as session:
-                logger.warning(f"Skipping description object due to duplicate entry")
-                session.rollback()  # Rollback the transaction to prevent it from affecting other operations
+                if existing_entry:
+                    # Update the existing entry
+                    existing_entry.tree = description[1]
+                    existing_entry.name = description[2]
+                    existing_entry.description = description[3]
+                    logger.info(f"Updated description object with id: {existing_entry.id}")
+                else:
+                    # Create a new entry
+                    new_entry = RuneDescription(
+                        id=description[0],
+                        tree=description[1],
+                        name=description[2],
+                        description=description[3]
+                    )
+                    session.add(new_entry)
+                    session.flush()
+                    session.refresh(new_entry)
+                    logger.info(f"Created description object with id: {new_entry.id}")
         except Exception as e:
             logger.error(f"Failed to create description object: {e}", exc_info=True)
 

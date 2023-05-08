@@ -89,19 +89,23 @@ class KafkaRunes:
         """
         try:
             with session_scope() as session:
-                runes = TopRunes(
-                    champion=rune_data.champion,
-                    runes=rune_data.runes
-                )
-                session.add(runes)
-                session.flush() 
-                session.refresh(runes)
+                # Check if an entry with the same champion already exists
+                existing_runes = session.query(TopRunes).filter_by(champion=rune_data.champion).one_or_none()
 
-                logger.info(f"Created runes object at id: {runes.id}")
-        except IntegrityError:
-            with session_scope() as session:
-                logger.warning(f"Skipping runes object due to duplicate entry")
-                session.rollback()  # Rollback the transaction to prevent it from affecting other operations
+                if existing_runes:
+                    # Update the existing entry
+                    existing_runes.runes = rune_data.runes
+                    logger.info(f"Updated runes object for champion: {existing_runes.champion}")
+                else:
+                    # Create a new entry
+                    runes = TopRunes(
+                        champion=rune_data.champion,
+                        runes=rune_data.runes
+                    )
+                    session.add(runes)
+                    session.flush()
+                    session.refresh(runes)
+                    logger.info(f"Created runes object at id: {runes.id}")
         except Exception as e:
             logger.error(f"Failed to create runes object: {e}", exc_info=True)
 
@@ -122,7 +126,7 @@ class KafkaRunes:
                 value_deserializer=lambda m: json.loads(m.decode('utf-8')),
                 auto_offset_reset='latest',
                 enable_auto_commit=True,
-                group_id='test_group',
+                group_id='runes_group',
                 max_poll_interval_ms=1000,
                 max_poll_records=20,
             )

@@ -56,6 +56,7 @@ async function scrapeUrls(urls){
         try {
             await page.goto(url, { waitUntil: ['domcontentloaded', 'networkidle2'] });
             let winrate = await extractTextFromElements(page, 'graphDD2');
+            winrate = winrate.match(/\d+(\.\d+)?%/)?.[0] || null; // Regex to extract the win rate from the text content
             let championName = url.split('/')[5];
             championName = championName.charAt(0).toUpperCase() + championName.slice(1);
 

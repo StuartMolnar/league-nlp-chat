@@ -1,6 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, Text, DateTime, UniqueConstraint
-import hashlib
+from sqlalchemy import Column, String, Integer, DateTime, UniqueConstraint
 
 from base import Base
 

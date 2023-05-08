@@ -16,6 +16,7 @@ from kafka_matchups import session_scope, KafkaMatchups, ChallengerMatchup
 from kafka_guides import KafkaGuides, ChampionGuide
 from kafka_descriptions import KafkaDescriptions, RuneDescription
 from kafka_runes import KafkaRunes, TopRunes
+from kafka_stats import KafkaWinrate, ChampStats
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -178,6 +179,10 @@ if __name__ == "__main__":
     # Start the top runes consumer
     top_runes = KafkaRunes()
     top_runes.run_kafka_consumer()
+
+    # Start the winrate consumer
+    winrates = KafkaWinrate()
+    winrates.run_kafka_consumer()
 
     # Start the FastAPI application
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

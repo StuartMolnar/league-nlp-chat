@@ -5,7 +5,7 @@ from base import Base
 
 class RuneDescription(Base):
     """
-    A class representing a challenger matchup in a League of Legends game.
+    A class representing a rune description in League of Legends.
     """
     __tablename__ = "rune_descriptions"
     id = Column(Integer, primary_key=True)
@@ -14,9 +14,8 @@ class RuneDescription(Base):
     name = Column(String(50))
     description = Column(String(1000))
 
-
     __table_args__ = (UniqueConstraint(
-        'id', name='unique_matchup'),)
+        'id', name='unique_description'),)
 
     def __init__(self, id, tree, name, description):
         self.id = id
