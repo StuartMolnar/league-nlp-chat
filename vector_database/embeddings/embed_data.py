@@ -40,8 +40,8 @@ def prepare_embeddings(embeddings, structure_id_func):
     return [structure_id_func(embedding, id) for embedding, id in embeddings]
 
 
-def upload_embeddings(embeddings):
-    index.upsert(embeddings)
+def upload_embeddings(embeddings, service):
+    index.upsert(vectors=embeddings, namespace=service)
 
 
 data_prep = PrepareData()
@@ -84,7 +84,15 @@ def structure_top_rune(embedding, id):
 # logger.debug(f'preparing winrate embeddings')
 # winrate_embeddings = prepare_embeddings(winrate_embeddings, structure_winrate)
 # logger.debug(f'uploading winrate embeddings')
-# upload_embeddings(winrate_embeddings)
+# upload_embeddings(winrate_embeddings, 'winrates')
+
+# rune_descriptions = data_prep.prepare_rune_descriptions()
+# logger.debug(f'embedding rune description data')
+# rune_description_embeddings = embed_data(rune_descriptions)
+# logger.debug(f'preparing rune description embeddings')
+# rune_description_embeddings = prepare_embeddings(rune_description_embeddings, structure_rune_description)
+# logger.debug(f'uploading rune description embeddings')
+# upload_embeddings(rune_description_embeddings, 'rune_descriptions')
 
 # top_runes = data_prep.prepare_top_runes()
 # logger.debug(f'embedding top rune data')
@@ -92,7 +100,7 @@ def structure_top_rune(embedding, id):
 # logger.debug(f'preparing top rune embeddings')
 # top_rune_embeddings = prepare_embeddings(top_rune_embeddings, structure_top_rune)
 # logger.debug(f'uploading top rune embeddings')
-# upload_embeddings(top_rune_embeddings)
+# upload_embeddings(top_rune_embeddings, 'top_runes')
 
 # logger.debug(f'requesting rune description data')
 # rune_descriptions = data_prep.prepare_rune_descriptions()
@@ -113,6 +121,10 @@ def embed_query(query):
     )
     return res["data"][0]["embedding"]
 
+def query_namespace(query_embedding, namespace, top_k):
+    reply = index.query(queries=[query_embedding], top_k=top_k, include_metadata=True, namespace=namespace)
+    return reply['results'][0]['matches']
+
 query = "what runes should i take on jax"
 logger.info(f"query: {query}")
 query_embedding = embed_query(query)
@@ -120,16 +132,30 @@ query_embedding = embed_query(query)
 
 
 
-reply = index.query(queries=[query_embedding], top_k=15, include_metadata=True)
-logger.info(f"pinecone semantic search reply: {reply}")
-replies = reply['results'][0]['matches']
+winrate_reply = query_namespace(query_embedding, 'winrates', 1)
+logger.info(f"pinecone winrate reply: {winrate_reply}")
+rune_description_reply = query_namespace(query_embedding, 'rune_descriptions', 1)
+logger.info(f"pinecone rune description reply: {rune_description_reply}")
+top_rune_reply = query_namespace(query_embedding, 'top_runes', 1)
+logger.info(f"pinecone top rune reply: {top_rune_reply}")
 
-for i in range(len(replies)):
-    if replies[i]['score'] > 0.8: # 0.8 is the threshold for a semantically relevant match
-        reply_id = re.findall(r'\d+$', replies[i]['id'])[0]
-        logger.info(f"reply id: {reply_id}")
-        response = requests.get(f"http://localhost:8000/top_runes/{reply_id}")
-        logger.info(f"response: {response.json()}")
+def get_replies_from_service(replies, service):
+    return [reply['id'] for reply in replies]
+
+
+
+services = [(winrate_reply, 'winrates'), (rune_description_reply, 'rune_descriptions'), (top_rune_reply, 'top_runes')]
+top_score = {"score": -1, "namespace": '', "id": -1} 
+
+for replies, namespace in services:
+    for reply in replies:
+        if reply['score'] > top_score["score"]:
+            top_score = {"score": reply['score'], "namespace": namespace, "id": reply['id']}
+
+logger.info(f"top reply: {top_score}")
+id = re.findall(r'\d+$', top_score['id'])[0]
+response = requests.get(f"http://localhost:8000/{top_score['namespace']}/{id}")
+logger.info(f"response: {response.json()}")
 
 
 # !!!!!!!!!!!!!!!!!!!!!!
