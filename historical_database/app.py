@@ -17,6 +17,7 @@ from kafka_guides import KafkaGuides, ChampionGuide
 from kafka_descriptions import KafkaDescriptions, RuneDescription
 from kafka_runes import KafkaRunes, TopRunes
 from kafka_stats import KafkaWinrate, ChampStats
+from datetime import datetime
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -61,8 +62,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/matchups")
-async def get_all_matchups():
+@app.get("/matchups_today")
+async def get_all_matchups_today():
     """
     Retrieve all challenger matchups from the database that were created on the same UTC day as the request.
 
@@ -97,11 +98,57 @@ async def get_all_matchups():
                         "deaths": matchup.player2_deaths,
                         "assists": matchup.player2_assists,
                         "items": matchup.player2_items
-                    }
+                    },
+                    "date": matchup.timestamp.strftime('%B %d')
                 }
                 for matchup in matchups
             ]
+            logger.info(f"Retrieved {len(results)} matchups from the database")
+            return results
 
+    except Exception as e:
+        logger.error(f"Failed to retrieve matchups: {e}", exc_info=True)
+        raise e
+    
+@app.get("/matchups")
+async def get_all_matchups():
+    """
+    Retrieve all challenger matchups from the database that were created on the same UTC day as the request.
+
+    Returns:
+        list: A list of challenger matchups, where each matchup contains data for both players.
+    """
+    logger.info("Retrieving all challenger matchups from the database")
+
+    try:
+        with session_scope() as session:
+            matchups = session.query(ChallengerMatchup).all()
+
+            results = [
+                {
+                    "player1": {
+                        "name": matchup.player1_name,
+                        "champion": matchup.player1_champion,
+                        "role": matchup.player1_role,
+                        "kills": matchup.player1_kills,
+                        "deaths": matchup.player1_deaths,
+                        "assists": matchup.player1_assists,
+                        "items": matchup.player1_items
+                    },
+                    "player2": {
+                        "name": matchup.player2_name,
+                        "champion": matchup.player2_champion,
+                        "role": matchup.player2_role,
+                        "kills": matchup.player2_kills,
+                        "deaths": matchup.player2_deaths,
+                        "assists": matchup.player2_assists,
+                        "items": matchup.player2_items
+                    },
+                    "date": matchup.timestamp.strftime('%B %d')
+                }
+                for matchup in matchups
+            ]
+            logger.info(f"Retrieved {len(results)} matchups from the database")
             return results
 
     except Exception as e:
@@ -120,10 +167,7 @@ async def get_all_guides():
 
     try:
         with session_scope() as session:
-            today = datetime.now(timezone.utc).date()  # Get the current date in UTC timezone
-            guides = session.query(ChampionGuide.champion, ChampionGuide.guide).filter(
-                ChampionGuide.timestamp >= today  # Filter by created_at date
-            ).all()
+            guides = session.query(ChampionGuide).all()
             formatted_guides = [{"champion": row.champion, "guide": row.guide} for row in guides]
             return formatted_guides
     except Exception as e:
