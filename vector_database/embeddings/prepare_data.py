@@ -34,7 +34,7 @@ class PrepareData:
 
             matchup_string = f"on {matchup['date']}, {matchup['player1']['name']} played {matchup['player1']['champion']} {matchup['player1']['role']} versus {matchup['player2']['champion']}, he went {matchup['player1']['kills']}-{matchup['player1']['deaths']}-{matchup['player1']['assists']} and built {items}" 
 
-            return matchup_string
+            return matchup_string, matchup['id']
         
         return [process_matchup_string(matchup) for matchup in matchups]
 
@@ -52,7 +52,7 @@ class PrepareData:
         
         def process_guide_string(guide):
             guide_string = f"This is a {guide['champion']} guide: {guide['guide']}"
-            return guide_string
+            return guide_string, guide['id']
         
         return [process_guide_string(guide) for guide in guides]
 
@@ -68,7 +68,7 @@ class PrepareData:
         
         def process_winrate_string(winrate):
             winrate_string = f"{winrate['champion']} has a winrate of {winrate['winrate']}"
-            return winrate_string
+            return winrate_string, winrate['id']
         
         return [process_winrate_string(winrate) for winrate in winrates]
 
@@ -84,7 +84,7 @@ class PrepareData:
         
         def process_rune_description_string(rune_description):
             rune_description_string = f"{rune_description['name']} is a {rune_description['tree']} rune, description: {rune_description['description']}"
-            return rune_description_string
+            return rune_description_string, rune_description['id']
         
         return [process_rune_description_string(rune_description) for rune_description in rune_descriptions]
 

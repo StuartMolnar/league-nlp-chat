@@ -92,18 +92,17 @@ class KafkaDescriptions:
         try:
             with session_scope() as session:
                 # Check if an entry with the same ID already exists
-                existing_entry = session.query(RuneDescription).filter_by(id=description[0]).one_or_none()
+                existing_entry = session.query(RuneDescription).filter_by(name=description[2]).one_or_none()
 
                 if existing_entry:
                     # Update the existing entry
                     existing_entry.tree = description[1]
                     existing_entry.name = description[2]
                     existing_entry.description = description[3]
-                    logger.info(f"Updated description object with id: {existing_entry.id}")
+                    logger.info(f"Updated description object with id: {existing_entry.rune_id}")
                 else:
                     # Create a new entry
                     new_entry = RuneDescription(
-                        id=description[0],
                         tree=description[1],
                         name=description[2],
                         description=description[3]
