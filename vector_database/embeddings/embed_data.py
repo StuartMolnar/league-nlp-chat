@@ -88,20 +88,23 @@ def embed_query(query):
     )
     return res["data"][0]["embedding"]
 
-query = "what is aftershock?"
+query = "tell me about nimbus cloak and gathering storm"
 logger.info(f"query: {query}")
 query_embedding = embed_query(query)
 #logger.info(f"query embedding: {query_embedding}")
 
 
 
-reply = index.query(queries=[query_embedding], top_k=1, include_metadata=True)
+reply = index.query(queries=[query_embedding], top_k=15, include_metadata=True)
 logger.info(f"pinecone semantic search reply: {reply}")
+replies = reply['results'][0]['matches']
 
-reply_id = re.findall(r'\d+$', reply['results'][0]['matches'][0]['id'])[0]
-logger.info(f"reply id: {reply_id}")
-response = requests.get(f"http://localhost:8000/rune_descriptions/{reply_id}")
-logger.info(f"response: {response.json()}")
+for i in range(len(replies)):
+    if replies[i]['score'] > 0.8: # 0.8 is the threshold for a semantically relevant match
+        reply_id = re.findall(r'\d+$', replies[i]['id'])[0]
+        logger.info(f"reply id: {reply_id}")
+        response = requests.get(f"http://localhost:8000/rune_descriptions/{reply_id}")
+        logger.info(f"response: {response.json()}")
 
 
 # for match in reply['results'][0]['matches']:
