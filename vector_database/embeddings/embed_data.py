@@ -65,10 +65,35 @@ def structure_top_rune(embedding, id):
     return (f"top_rune_{id}", embedding)
 
 
+
+# def store_dataset_in_pinecone(dataset):
+#     exec(f"{dataset} = data_prep.prepare_{dataset}()")
+#     exec(f"{dataset}_embeddings = embed_data({dataset})")
+#     exec(f"{dataset}_embeddings = prepare_embeddings({dataset}_embeddings, structure_{dataset})")
+#     exec(f"upload_embeddings({dataset}_embeddings)")
+
+# store_dataset_in_pinecone('winrates')
+# store_dataset_in_pinecone('top_runes')
+
 # matchups = data_prep.prepare_matchups()
 # guides = data_prep.prepare_guides()
+
 # winrates = data_prep.prepare_winrates()
+# logger.debug(f'embedding winrate data')
+# winrate_embeddings = embed_data(winrates)
+# logger.debug(f'preparing winrate embeddings')
+# winrate_embeddings = prepare_embeddings(winrate_embeddings, structure_winrate)
+# logger.debug(f'uploading winrate embeddings')
+# upload_embeddings(winrate_embeddings)
+
 # top_runes = data_prep.prepare_top_runes()
+# logger.debug(f'embedding top rune data')
+# top_rune_embeddings = embed_data(top_runes)
+# logger.debug(f'preparing top rune embeddings')
+# top_rune_embeddings = prepare_embeddings(top_rune_embeddings, structure_top_rune)
+# logger.debug(f'uploading top rune embeddings')
+# upload_embeddings(top_rune_embeddings)
+
 # logger.debug(f'requesting rune description data')
 # rune_descriptions = data_prep.prepare_rune_descriptions()
 # # logger.debug(f'embedding rune description data')
@@ -88,7 +113,7 @@ def embed_query(query):
     )
     return res["data"][0]["embedding"]
 
-query = "tell me about nimbus cloak and gathering storm"
+query = "what runes should i take on jax"
 logger.info(f"query: {query}")
 query_embedding = embed_query(query)
 #logger.info(f"query embedding: {query_embedding}")
@@ -103,8 +128,35 @@ for i in range(len(replies)):
     if replies[i]['score'] > 0.8: # 0.8 is the threshold for a semantically relevant match
         reply_id = re.findall(r'\d+$', replies[i]['id'])[0]
         logger.info(f"reply id: {reply_id}")
-        response = requests.get(f"http://localhost:8000/rune_descriptions/{reply_id}")
+        response = requests.get(f"http://localhost:8000/top_runes/{reply_id}")
         logger.info(f"response: {response.json()}")
+
+
+# !!!!!!!!!!!!!!!!!!!!!!
+'''
+!!!!!!!!!!!!!!!!!
+todo: split the data into separate namespaces, run the semantic search on each namespace
+that way we can filter which database table to query based on the namespace
+we will compare the score of each namespace result and pick the most relevant
+
+this way we can also have separate top_k values for each namespace
+for example, top_runes, champion_winrats, and guides will have a top_k of 1-2, but matchups and rune_descriptions can have a top_k of 5-10
+!!!!!!!!!!!!!!!!!!!
+'''
+# !!!!!!!!!!!!!!!!!!!!!!
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # for match in reply['results'][0]['matches']:

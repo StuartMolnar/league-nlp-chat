@@ -61,6 +61,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# add guides by id and matchups by id endpoints
 
 @app.get("/matchups_today")
 async def get_all_matchups_today():
@@ -80,7 +81,8 @@ async def get_all_matchups_today():
             ).all()
 
             results = [
-                {
+                {   
+                    "id": matchup.id,
                     "player1": {
                         "name": matchup.player1_name,
                         "champion": matchup.player1_champion,
@@ -100,6 +102,7 @@ async def get_all_matchups_today():
                         "items": matchup.player2_items
                     },
                     "date": matchup.timestamp.strftime('%B %d')
+                    
                 }
                 for matchup in matchups
             ]
@@ -126,6 +129,7 @@ async def get_all_matchups():
 
             results = [
                 {
+                    "id": matchup.id,
                     "player1": {
                         "name": matchup.player1_name,
                         "champion": matchup.player1_champion,
@@ -168,7 +172,7 @@ async def get_all_guides():
     try:
         with session_scope() as session:
             guides = session.query(ChampionGuide).all()
-            formatted_guides = [{"champion": row.champion, "guide": row.guide} for row in guides]
+            formatted_guides = [{"id": row.id, "champion": row.champion, "guide": row.guide} for row in guides]
             return formatted_guides
     except Exception as e:
         logger.error(f"Failed to retrieve guides: {e}", exc_info=True)
@@ -239,15 +243,15 @@ async def get_all_top_runes():
         with session_scope() as session:
             top_runes = session.query(TopRunes).all()
             return [
-                {"champion": row.champion, "runes": row.runes}
+                {"id": row.id, "champion": row.champion, "runes": row.runes}
                 for row in top_runes
             ]
     except Exception as e:
         logger.error(f"Failed to retrieve champion runes: {e}", exc_info=True)
         raise e
     
-@app.get("/top_runes/{champion_name}")
-async def get_top_runes_by_champion(champion_name: str):
+@app.get("/top_runes/{id}")
+async def get_top_runes_by_champion(id: int):
     """
     Retrieve champion runes for a specific champion from the database.
 
@@ -257,17 +261,17 @@ async def get_top_runes_by_champion(champion_name: str):
     Returns:
         list: A list containing information on the runes for the specified champion.
     """
-    logger.info(f"Retrieving runes for champion '{champion_name}' from the database")
+    logger.info(f"Retrieving runes for champion id '{id}' from the database")
 
     try:
         with session_scope() as session:
-            top_runes = session.query(TopRunes).filter_by(champion=champion_name.capitalize()).one_or_none()
+            top_runes = session.query(TopRunes).filter_by(id=id).one_or_none()
             if top_runes:
-                return {"champion": top_runes.champion, "runes": top_runes.runes}
+                return {"id": top_runes.id, "champion": top_runes.champion, "runes": top_runes.runes}
             else:
-                return {"message": f"No runes found for champion '{champion_name}'"}
+                return {"message": f"No runes found for champion '{top_runes.champion}'"}
     except Exception as e:
-        logger.error(f"Failed to retrieve runes for champion '{champion_name}': {e}", exc_info=True)
+        logger.error(f"Failed to retrieve runes for champion '{top_runes.champion}': {e}", exc_info=True)
         raise e
 
 
@@ -285,15 +289,15 @@ async def get_all_winrates():
         with session_scope() as session:
             champion_winrates = session.query(ChampStats).all()
             return [
-                {"champion": row.champion, "winrate": row.winrate}
+                {"id": row.id, "champion": row.champion, "winrate": row.winrate}
                 for row in champion_winrates
             ]
     except Exception as e:
         logger.error(f"Failed to retrieve Kafka winrates: {e}", exc_info=True)
         raise e
 
-@app.get("/champion_winrates/{champion_name}")
-async def get_winrate_by_champion(champion_name: str):
+@app.get("/champion_winrates/{id}")
+async def get_winrate_by_champion(id: int):
     """
     Retrieve champion winrate for a specific champion from the database.
 
@@ -303,17 +307,17 @@ async def get_winrate_by_champion(champion_name: str):
     Returns:
         list: A list containing information on the winrate for the specified champion.
     """
-    logger.info(f"Retrieving champion winrate for champion '{champion_name}' from the database")
+    logger.info(f"Retrieving champion winrate for champion id '{id}' from the database")
 
     try:
         with session_scope() as session:
-            champion_winrate = session.query(ChampStats).filter_by(champion=champion_name.capitalize()).one_or_none()
+            champion_winrate = session.query(ChampStats).filter_by(id=id).one_or_none()
             if champion_winrate:
-                return {"champion": champion_winrate.champion, "winrate": champion_winrate.winrate}
+                return {"id": champion_winrate.id, "champion": champion_winrate.champion, "winrate": champion_winrate.winrate}
             else:
-                return {"message": f"No winrate found for champion '{champion_name}'"}
+                return {"message": f"No winrate found for champion '{champion_winrate.champion}'"}
     except Exception as e:
-        logger.error(f"Failed to retrieve winrate for champion '{champion_name}': {e}", exc_info=True)
+        logger.error(f"Failed to retrieve winrate for champion '{champion_winrate.champion}': {e}", exc_info=True)
         raise e
 
 

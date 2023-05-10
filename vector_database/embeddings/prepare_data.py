@@ -101,7 +101,7 @@ class PrepareData:
         
         def process_top_rune_string(top_rune):
             top_rune_string = f"The top runes for {top_rune['champion']} are: {top_rune['runes']}"
-            return top_rune_string
+            return top_rune_string, top_rune['id']
         
         return [process_top_rune_string(top_rune) for top_rune in top_runes]
 
