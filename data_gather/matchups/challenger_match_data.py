@@ -193,11 +193,9 @@ class MatchData:
         logger.info("Sending matchups to Kafka")
         for composition in versus_compositions.items():
             composition = composition[-1] # Get the list of player data from the tuple
-            # Send the data to the specified Kafka topic
             producer.send(topic, composition)
             logger.debug(f"Sent matchup data to Kafka topic '{topic}': {composition}")
 
-        # Flush the Kafka producer to ensure all messages are sent
         producer.flush()
 
 

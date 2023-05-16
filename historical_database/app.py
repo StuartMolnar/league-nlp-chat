@@ -275,7 +275,7 @@ async def get_top_runes_by_champion(id: int):
         raise e
 
 
-@app.get("/champion_winrates")
+@app.get("/winrates")
 async def get_all_winrates():
     """
     Retrieve all champion winrates from the database.
@@ -296,7 +296,7 @@ async def get_all_winrates():
         logger.error(f"Failed to retrieve Kafka winrates: {e}", exc_info=True)
         raise e
 
-@app.get("/champion_winrates/{id}")
+@app.get("/winrates/{id}")
 async def get_winrate_by_champion(id: int):
     """
     Retrieve champion winrate for a specific champion from the database.

@@ -125,7 +125,7 @@ def query_namespace(query_embedding, namespace, top_k):
     reply = index.query(queries=[query_embedding], top_k=top_k, include_metadata=True, namespace=namespace)
     return reply['results'][0]['matches']
 
-query = "what runes should i take on jax"
+query = "what champion has the highest winrate"
 logger.info(f"query: {query}")
 query_embedding = embed_query(query)
 #logger.info(f"query embedding: {query_embedding}")
@@ -139,11 +139,6 @@ logger.info(f"pinecone rune description reply: {rune_description_reply}")
 top_rune_reply = query_namespace(query_embedding, 'top_runes', 1)
 logger.info(f"pinecone top rune reply: {top_rune_reply}")
 
-def get_replies_from_service(replies, service):
-    return [reply['id'] for reply in replies]
-
-
-
 services = [(winrate_reply, 'winrates'), (rune_description_reply, 'rune_descriptions'), (top_rune_reply, 'top_runes')]
 top_score = {"score": -1, "namespace": '', "id": -1} 
 
@@ -154,21 +149,14 @@ for replies, namespace in services:
 
 logger.info(f"top reply: {top_score}")
 id = re.findall(r'\d+$', top_score['id'])[0]
-response = requests.get(f"http://localhost:8000/{top_score['namespace']}/{id}")
+request_url = f"http://localhost:8000/{top_score['namespace']}/{id}"
+logger.info(f"request url: {request_url}")
+response = requests.get(request_url)
 logger.info(f"response: {response.json()}")
 
 
 # !!!!!!!!!!!!!!!!!!!!!!
-'''
-!!!!!!!!!!!!!!!!!
-todo: split the data into separate namespaces, run the semantic search on each namespace
-that way we can filter which database table to query based on the namespace
-we will compare the score of each namespace result and pick the most relevant
 
-this way we can also have separate top_k values for each namespace
-for example, top_runes, champion_winrats, and guides will have a top_k of 1-2, but matchups and rune_descriptions can have a top_k of 5-10
-!!!!!!!!!!!!!!!!!!!
-'''
 # !!!!!!!!!!!!!!!!!!!!!!
 
 

@@ -2,7 +2,6 @@ import logging
 import logging.config
 import yaml
 import requests
-import datetime
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -27,7 +26,7 @@ class PrepareData:
             logger.error(f'Failed to request matchups data: {response.status_code}')
             return
         
-        def process_matchup_string(matchup):
+        def __process_matchup_string(matchup):
             matchup_string = ''
             items = matchup['player1']['items'].split('| ')
             items = ', '.join(items)
@@ -36,7 +35,7 @@ class PrepareData:
 
             return matchup_string, matchup['id']
         
-        return [process_matchup_string(matchup) for matchup in matchups]
+        return [__process_matchup_string(matchup) for matchup in matchups]
 
             
 
@@ -50,11 +49,11 @@ class PrepareData:
             logger.error(f'Failed to request guides data: {response.status_code}')
             return
         
-        def process_guide_string(guide):
+        def __process_guide_string(guide):
             guide_string = f"This is a {guide['champion']} guide: {guide['guide']}"
             return guide_string, guide['id']
         
-        return [process_guide_string(guide) for guide in guides]
+        return [__process_guide_string(guide) for guide in guides]
 
     def prepare_winrates(self):
         """
@@ -66,11 +65,11 @@ class PrepareData:
             logger.error(f'Failed to request winrates data: {response.status_code}')
             return
         
-        def process_winrate_string(winrate):
+        def __process_winrate_string(winrate):
             winrate_string = f"{winrate['champion']} has a winrate of {winrate['winrate']}"
             return winrate_string, winrate['id']
         
-        return [process_winrate_string(winrate) for winrate in winrates]
+        return [__process_winrate_string(winrate) for winrate in winrates]
 
     def prepare_rune_descriptions(self):
         """
@@ -82,11 +81,11 @@ class PrepareData:
             logger.error(f'Failed to request rune descriptions data: {response.status_code}')
             return
         
-        def process_rune_description_string(rune_description):
+        def __process_rune_description_string(rune_description):
             rune_description_string = f"{rune_description['name']} is a {rune_description['tree']} rune, description: {rune_description['description']}"
             return rune_description_string, rune_description['id']
         
-        return [process_rune_description_string(rune_description) for rune_description in rune_descriptions]
+        return [__process_rune_description_string(rune_description) for rune_description in rune_descriptions]
 
 
     def prepare_top_runes(self):
@@ -99,11 +98,11 @@ class PrepareData:
             logger.error(f'Failed to request top runes data: {response.status_code}')
             return
         
-        def process_top_rune_string(top_rune):
+        def __process_top_rune_string(top_rune):
             top_rune_string = f"The top runes for {top_rune['champion']} are: {top_rune['runes']}"
             return top_rune_string, top_rune['id']
         
-        return [process_top_rune_string(top_rune) for top_rune in top_runes]
+        return [__process_top_rune_string(top_rune) for top_rune in top_runes]
 
 
     

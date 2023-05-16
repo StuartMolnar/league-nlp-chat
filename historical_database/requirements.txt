@@ -7,4 +7,5 @@ uvicorn
 PyYAML
 kafka-python
 pymysql
+python-dotenv
 

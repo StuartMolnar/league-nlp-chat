@@ -1,5 +1,3 @@
-import requests
-import json
 from challenger_match_data import MatchData
 import logging
 import logging.config
