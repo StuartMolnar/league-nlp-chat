@@ -11,4 +11,4 @@ kafka:
   topic_guides: 'champion_guides'
   topic_descriptions: 'rune_descriptions'
   topic_runes: 'top_runes'
-  topic_winrate: 'champion_stats'
+  topic_winrate: 'champion_winrates'

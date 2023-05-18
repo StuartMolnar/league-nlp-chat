@@ -5,7 +5,7 @@ import os
 import shutil
 from io import BytesIO
 import re
-
+from packaging import version
 import logging
 import logging.config
 import yaml
@@ -76,7 +76,7 @@ class DDragonRunes:
         """
         Removes the downloaded DDragon assets.
         """
-        logger.info("Cleaning up ddragon data assets")
+        logger.info(f"Cleaning up ddragon data assets at ddragon-data-{version}")
         shutil.rmtree(f"ddragon-data-{version}")
     
     def __is_newer_version(self):
@@ -102,13 +102,16 @@ class DDragonRunes:
         # Extract the version number from the file name
         current_version = current_version_file.replace(DDRAGON_FILE, "")
 
+        current_version = version.parse(current_version)
+        latest_version = version.parse(self.version)
+
         # Compare the version number from the file name to the latest version
-        if self.version > current_version:
-            logger.info("Version is newer than the one in the file")
-            self.__clean_up(current_version)
+        if latest_version > current_version:
+            logger.info(f"Version {latest_version} is newer than the one in the file {current_version}")
+            self.__clean_up(str(current_version))
             return True
         
-        logger.info("Version is equal to or older than the one in the file")
+        logger.info(f"Version {latest_version} is equal to or older than the one in the file {current_version}")
         return False
 
 
@@ -121,11 +124,11 @@ class DDragonRunes:
             logger.info("Downloading and extracting DDragon")
             url = f"https://ddragon.leagueoflegends.com/cdn/dragontail-{self.version}.tgz"
             response = requests.get(url)
-            extraction_folder = {DDRAGON_FILE} + {self.version}
+            extraction_folder = DDRAGON_FILE + self.version
             os.makedirs(extraction_folder, exist_ok=True)
             with tarfile.open(fileobj=BytesIO(response.content), mode="r:gz") as archive:
                 archive.extractall(path=extraction_folder)
-            logger.info("Finished downloading and extracting DDragon to {extraction_folder}")
+            logger.info(f"Finished downloading and extracting DDragon to {extraction_folder}")
         
 
     def __read_rune_data(self):
@@ -141,7 +144,8 @@ class DDragonRunes:
         perk_json_path = f"{DDRAGON_FILE}{self.version}/{self.version}/data/{language}/runesReforged.json"
         with open(perk_json_path, 'r', encoding='utf-8') as file:
             rune_data = json.load(file)
-        return rune_data
+        self.rune_data = rune_data
+        self.__clean_rune_data()
 
     def __clean_rune_data(self):
         """
@@ -150,7 +154,6 @@ class DDragonRunes:
         """
         logger.info("Cleaning rune data")
         rune_data = []
-        self.rune_data = self.__read_rune_data()
         for path in self.rune_data:
             rune_tree = path["name"]
             for runes in path["slots"]:
@@ -179,7 +182,7 @@ class DDragonRunes:
         """
         logger.info("Producing rune data")
         self.__download_and_extract_ddragon()
-        self.__clean_rune_data()
+        self.__read_rune_data()
         self.__send_rune_data_to_kafka(topic)
 
         # Flush the Kafka producer to ensure all messages are sent

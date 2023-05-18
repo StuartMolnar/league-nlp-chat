@@ -7,7 +7,7 @@ from challenger_matchups import ChallengerMatchup
 from champion_guides import ChampionGuide
 from rune_descriptions import RuneDescription
 from top_runes import TopRunes
-from champion_stats import ChampStats
+from champion_winrates import ChampionWinrates
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -32,6 +32,6 @@ logger.info("Creating all tables")
 engine = create_engine(DATABASE_URL)
 
 # Create all defined tables
-Base.metadata.create_all(bind=engine, tables=[ChallengerMatchup.__table__, ChampionGuide.__table__, RuneDescription.__table__, TopRunes.__table__, ChampStats.__table__])
+Base.metadata.create_all(bind=engine, tables=[ChallengerMatchup.__table__, ChampionGuide.__table__, RuneDescription.__table__, TopRunes.__table__, ChampionWinrates.__table__])
 
 logger.info("Tables created successfully")

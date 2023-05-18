@@ -1,9 +1,8 @@
 from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import IntegrityError
 from base import Base
-from champion_stats import ChampStats
+from champion_winrates import ChampionWinrates
 
 import logging
 import logging.config
@@ -90,7 +89,7 @@ class KafkaWinrate:
         try:
             with session_scope() as session:
                 # Check if an entry with the same champion already exists
-                existing_entry = session.query(ChampStats).filter_by(champion=winrate_data.champion).one_or_none()
+                existing_entry = session.query(ChampionWinrates).filter_by(champion=winrate_data.champion).one_or_none()
 
                 if existing_entry:
                     # Update the existing entry
@@ -98,7 +97,7 @@ class KafkaWinrate:
                     logger.info(f"Updated winrate object for champion: {existing_entry.champion}")
                 else:
                     # Create a new entry
-                    champ_winrate = ChampStats(
+                    champ_winrate = ChampionWinrates(
                         champion=winrate_data.champion,
                         winrate=winrate_data.winrate
                     )

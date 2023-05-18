@@ -3,11 +3,11 @@ from sqlalchemy import Column, String, Integer, DateTime, UniqueConstraint
 
 from base import Base
 
-class ChampStats(Base):
+class ChampionWinrates(Base):
     """
     A class representing the top runes for a League of Legends champion.
     """
-    __tablename__ = "champion_stats"
+    __tablename__ = "champion_winrates"
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
     champion = Column(String(100))

@@ -158,13 +158,19 @@ class MatchData:
         itemsToGrab = ["item0", "item1", "item2", "item3", "item4", "item5", "item6"]
         items = []
         for field in fieldsToGrab:
-            if field == "teamPosition":
-                team_position = participant[field][0] + participant[field][1:].lower()
-                if team_position == "Utility":
-                    team_position = "Support"
-                fields.append(team_position)
-            else:
-                fields.append(participant[field])
+            try:
+                if field == "teamPosition":
+                    team_position = participant[field][0] + participant[field][1:].lower()
+                    if team_position == "Utility":
+                        team_position = "Support"
+                    fields.append(team_position)
+                else:
+                    fields.append(participant[field])
+            except Exception as e:
+                logger.error(f"Error extracting {field} from participant: {e}")
+                logger.debug(f"Participant: {participant}")
+                logger.debug(f"Field [0]: {participant[field][0]}")
+
         for item in itemsToGrab:
             item_name = self.__get_item_name_by_id(participant[item])
             if item_name != None:
@@ -216,6 +222,8 @@ class MatchData:
 
         for i in range(len(players)):
             team_position = players[i]["teamPosition"]
+            if team_position == '':
+                return
 
             if team_position in versus_compositions:
                 data = self.__extract_player_data_from_participant(players[i])

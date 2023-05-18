@@ -1,7 +1,7 @@
 """
 This module provides API endpoints to manage league of legends data.
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import JSONResponse
 from fastapi import status
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +16,7 @@ from kafka_matchups import session_scope, KafkaMatchups, ChallengerMatchup
 from kafka_guides import KafkaGuides, ChampionGuide
 from kafka_descriptions import KafkaDescriptions, RuneDescription
 from kafka_runes import KafkaRunes, TopRunes
-from kafka_stats import KafkaWinrate, ChampStats
+from kafka_winrates import KafkaWinrate, ChampionWinrates
 from datetime import datetime
 
 with open('log_conf.yml', 'r') as f:
@@ -31,7 +31,7 @@ with open('app_conf.yml', 'r') as f:
 app = FastAPI()
 
 @app.exception_handler(Exception)
-async def handle_internal_server_error(exc: Exception):
+async def handle_internal_server_error(request, exc):
     """
     Handle internal server errors and log the exception.
 
@@ -39,19 +39,21 @@ async def handle_internal_server_error(exc: Exception):
     with a 500 Internal Server Error status code.
 
     Args:
+        request (Request): The request that caused the exception.
         exc (Exception): The exception that was raised.
 
     Returns:
-        JSONResponse: A JSON response with a 500 Internal Server Error status code,
-                      and a content containing the error message and exception details.
+        Response: A response with a 500 Internal Server Error status code,
+                  and a content containing the error message and exception details.
     """
     logger.exception(exc)
-    return JSONResponse(
+    return Response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"message": "Internal server error", "detail": str(exc)},
+        media_type="application/json",
     )
 
-app = FastAPI(exception_handlers={Exception: handle_internal_server_error})  
+app = FastAPI(exception_handlers={500: handle_internal_server_error}) 
 
 # Allow CORS requests
 app.add_middleware(
@@ -200,8 +202,8 @@ async def get_all_rune_descriptions():
         logger.error(f"Failed to retrieve rune descriptions: {e}", exc_info=True)
         raise e
 
-@app.get("/rune_descriptions/{rune_id}")
-async def get_rune_description_by_id(rune_id: int):
+@app.get("/rune_descriptions/{id}")
+async def get_rune_description_by_id(id: int):
     """
     Retrieve a specific rune description from the database by its ID.
 
@@ -211,11 +213,11 @@ async def get_rune_description_by_id(rune_id: int):
     Returns:
         dict: A dictionary containing information on the specified rune description.
     """
-    logger.info(f"Retrieving rune description with ID {rune_id} from the database")
+    logger.info(f"Retrieving rune description with ID {id} from the database")
 
     try:
         with session_scope() as session:
-            rune_desc = session.query(RuneDescription).filter(RuneDescription.id == rune_id).first()
+            rune_desc = session.query(RuneDescription).filter(RuneDescription.id == id).first()
             if rune_desc is not None:
                 return {
                     "id": rune_desc.id,
@@ -224,9 +226,9 @@ async def get_rune_description_by_id(rune_id: int):
                     "description": rune_desc.description
                 }
             else:
-                raise HTTPException(status_code=404, detail=f"Rune description with ID {rune_id} not found")
+                raise HTTPException(status_code=404, detail=f"Rune description with ID {id} not found")
     except Exception as e:
-        logger.error(f"Failed to retrieve rune description with ID {rune_id}: {e}", exc_info=True)
+        logger.error(f"Failed to retrieve rune description with ID {id}: {e}", exc_info=True)
         raise e
     
 @app.get("/top_runes")
@@ -271,7 +273,7 @@ async def get_top_runes_by_champion(id: int):
             else:
                 return {"message": f"No runes found for champion '{top_runes.champion}'"}
     except Exception as e:
-        logger.error(f"Failed to retrieve runes for champion '{top_runes.champion}': {e}", exc_info=True)
+        logger.error(f"Failed to retrieve runes for champion: {e}", exc_info=True)
         raise e
 
 
@@ -287,7 +289,7 @@ async def get_all_winrates():
 
     try:
         with session_scope() as session:
-            champion_winrates = session.query(ChampStats).all()
+            champion_winrates = session.query(ChampionWinrates).all()
             return [
                 {"id": row.id, "champion": row.champion, "winrate": row.winrate}
                 for row in champion_winrates
@@ -311,13 +313,13 @@ async def get_winrate_by_champion(id: int):
 
     try:
         with session_scope() as session:
-            champion_winrate = session.query(ChampStats).filter_by(id=id).one_or_none()
+            champion_winrate = session.query(ChampionWinrates).filter_by(id=id).one_or_none()
             if champion_winrate:
                 return {"id": champion_winrate.id, "champion": champion_winrate.champion, "winrate": champion_winrate.winrate}
             else:
                 return {"message": f"No winrate found for champion '{champion_winrate.champion}'"}
     except Exception as e:
-        logger.error(f"Failed to retrieve winrate for champion '{champion_winrate.champion}': {e}", exc_info=True)
+        logger.error(f"Failed to retrieve winrate for champion': {e}", exc_info=True)
         raise e
 
 

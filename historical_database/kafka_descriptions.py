@@ -99,7 +99,7 @@ class KafkaDescriptions:
                     existing_entry.tree = description[1]
                     existing_entry.name = description[2]
                     existing_entry.description = description[3]
-                    logger.info(f"Updated description object with id: {existing_entry.rune_id}")
+                    logger.info(f"Updated description object with id: {existing_entry.id}")
                 else:
                     # Create a new entry
                     new_entry = RuneDescription(
