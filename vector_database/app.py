@@ -1,9 +1,14 @@
 import yaml
 import logging
 import logging.config
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, HTTPException, Response, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 from embed_data import StoreData
+from search_vector import SearchVector
+from truncating_log_handler import TruncatingLogHandler
+from urllib.parse import unquote
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -48,6 +53,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/search/")
+def search(query: str):
+    """
+    Accepts a query string, creates a SearchVector object with that query, 
+    and then returns the reply from the SearchVector.
+
+    Args:
+        query (str): The search query string.
+
+    Returns:
+        JSON: The reply from the SearchVector object.
+    """
+    try:
+        query = unquote(query)
+        search_vector = SearchVector(query)
+        return search_vector.reply
+    except Exception as e:
+        logger.error(str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 store = StoreData()
 
@@ -150,3 +177,7 @@ def store_top_runes():
     except Exception as e:
         logger.error(str(e))
         raise HTTPException(status_code=500, detail=str(e))
+    
+if __name__ == "__main__":    
+    # Start the FastAPI application
+    uvicorn.run("app:app", host="0.0.0.0", port=8100, reload=True)

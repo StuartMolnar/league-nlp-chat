@@ -7,8 +7,6 @@ import logging.config
 from dotenv import load_dotenv
 from prepare_data import PrepareData
 import datetime
-import requests
-import re
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -179,40 +177,3 @@ class StoreData:
         self.__store_data('top_runes', 'prepare_top_runes', self.__structure_top_rune)
 
 
-
-
-
-# !!!!!!!!!!!!!!!!!!!!!!
-
-# !!!!!!!!!!!!!!!!!!!!!!
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# for match in reply['results'][0]['matches']:
-#     logger.info(f"pinecone result: {match['values']}")
-
-
-# todo: test the vector search by hardcoding a question, then embedding it, then searching for the closest vector
-
-
-
-
-
-
-# 410 matchups = $0.0085
-# guides = $0.5948
-# winrates = $0.0009
-# rune descriptions = $0.0017
-# top runes = $0.0020

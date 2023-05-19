@@ -1,9 +1,8 @@
 """
 This module provides API endpoints to manage league of legends data.
 """
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.responses import JSONResponse
-from fastapi import status
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import logging

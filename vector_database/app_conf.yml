@@ -5,5 +5,5 @@ database_endpoints:
   challenger_matchups: 'http://localhost:8000/matchups_past_day'
   champion_guides: 'http://localhost:8000/guides'
   champion_winrates: 'http://localhost:8000/winrates/'
-  rune_descriptions_ur: 'http://localhost:8000/rune_descriptions/'
+  rune_descriptions: 'http://localhost:8000/rune_descriptions/'
   top_runes: 'http://localhost:8000/top_runes/'
