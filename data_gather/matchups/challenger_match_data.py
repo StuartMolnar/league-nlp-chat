@@ -223,6 +223,7 @@ class MatchData:
         for i in range(len(players)):
             team_position = players[i]["teamPosition"]
             if team_position == '':
+                logger.info(f"Player {players[i]['summonerName']} has no team position. Skipping match.")
                 return
 
             if team_position in versus_compositions:
@@ -267,6 +268,7 @@ class MatchData:
         cg = ChallengerGames()
         games = cg.fetch_challenger_games_from_past_day()
         self.__process_all_games(games, topic)
+        logger.info("Finished sending all games")
     
 if __name__ == '__main__':
     pass
