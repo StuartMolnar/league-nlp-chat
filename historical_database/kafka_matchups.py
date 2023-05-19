@@ -102,9 +102,8 @@ class KafkaMatchups:
             data: A dictionary containing a single key-value pair,
                 where the key is the role and the value is a list
                 of two lists, each representing a player's data.
-
         """
-        logger.info('Creating a new challenger matchup')    
+        logger.info('Creating a new challenger matchup')
         player1 = players[0]
         player2 = players[1]
 
@@ -117,29 +116,30 @@ class KafkaMatchups:
                     player1_kills=player1[3],
                     player1_deaths=player1[4],
                     player1_assists=player1[5],
-                    player1_items="| ".join(map(str, player1[6])), # Serialize player items as a comma-separated string
-                    player1_perks="| ".join(map(str, player1[7])), # Serialize player perks as a comma-separated string
+                    player1_items="| ".join(map(str, player1[6])),
+                    player1_perks="| ".join(map(str, player1[7])),
                     player2_name=player2[0],
                     player2_champion=player2[1],
                     player2_role=player2[2],
                     player2_kills=player2[3],
                     player2_deaths=player2[4],
                     player2_assists=player2[5],
-                    player2_items="| ".join(map(str, player2[6])), # Serialize player items as a comma-separated string
-                    player2_perks="| ".join(map(str, player2[7])) # Serialize player perks as a comma-separated string
+                    player2_items="| ".join(map(str, player2[6])),
+                    player2_perks="| ".join(map(str, player2[7]))
                 )
-            
+
                 session.add(matchup)
-                session.flush() 
+                session.flush()
                 session.refresh(matchup)
 
                 logger.info(f"Created matchup object at id: {matchup.id}")
         except IntegrityError:
             with session_scope() as session:
-                logger.warning(f"Skipping matchup object due to duplicate entry")
-                session.rollback()  # Rollback the transaction to prevent it from affecting other operations
+                logger.error(f"Integrity Error: Skipping matchup object due to duplicate entry")
+                session.rollback()
         except Exception as e:
             logger.error(f"Failed to create matchup object: {e}", exc_info=True)
+
 
     def __consume_messages(self):
         """

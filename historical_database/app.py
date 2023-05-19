@@ -17,7 +17,7 @@ from kafka_guides import KafkaGuides, ChampionGuide
 from kafka_descriptions import KafkaDescriptions, RuneDescription
 from kafka_runes import KafkaRunes, TopRunes
 from kafka_winrates import KafkaWinrate, ChampionWinrates
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -65,10 +65,10 @@ app.add_middleware(
 )
 # add guides by id and matchups by id endpoints
 
-@app.get("/matchups_today")
-async def get_all_matchups_today():
+@app.get("/matchups_past_day")
+async def get_all_matchups_past_day():
     """
-    Retrieve all challenger matchups from the database that were created on the same UTC day as the request.
+    Retrieve all challenger matchups from the database that were created in the past 24 hours.
 
     Returns:
         list: A list of challenger matchups, where each matchup contains data for both players.
@@ -77,13 +77,15 @@ async def get_all_matchups_today():
 
     try:
         with session_scope() as session:
-            today = datetime.now(timezone.utc).date()  # Get the current date in UTC timezone
+            now = datetime.now(timezone.utc)
+            yesterday = now - timedelta(days=1)
+
             matchups = session.query(ChallengerMatchup).filter(
-                ChallengerMatchup.timestamp >= today  # Filter by created_at date
+                ChallengerMatchup.timestamp >= yesterday
             ).all()
 
             results = [
-                {   
+                {
                     "id": matchup.id,
                     "player1": {
                         "name": matchup.player1_name,
@@ -178,6 +180,27 @@ async def get_all_guides():
             return formatted_guides
     except Exception as e:
         logger.error(f"Failed to retrieve guides: {e}", exc_info=True)
+        raise e
+    
+@app.get("/guides/{id}")
+async def get_guide_by_id(id: int):
+    """
+    Retrieve a champion guide from the database by its ID.
+
+    Args:
+        id (int): The ID of the guide to retrieve.
+
+    Returns:
+        dict: A dictionary containing the champion name and guide text.
+    """
+    logger.info(f"Retrieving guide with ID {id} from the database")
+
+    try:
+        with session_scope() as session:
+            guide = session.query(ChampionGuide).filter(ChampionGuide.id == id).first()
+            return {"id": guide.id, "champion": guide.champion, "guide": guide.guide}
+    except Exception as e:
+        logger.error(f"Failed to retrieve guide with ID {id}: {e}", exc_info=True)
         raise e
 
 

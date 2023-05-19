@@ -9,9 +9,9 @@ with open('log_conf.yml', 'r') as f:
 
 logger = logging.getLogger('basicLogger')
 
-challenger_matchups_url = 'http://localhost:8000/matchups'
+challenger_matchups_url = 'http://localhost:8000/matchups_past_day'
 champion_guides_url = 'http://localhost:8000/guides'
-champion_winrates_url = 'http://localhost:8000/champion_winrates/'
+champion_winrates_url = 'http://localhost:8000/winrates/'
 rune_descriptions_url = 'http://localhost:8000/rune_descriptions/'
 top_runes_url = 'http://localhost:8000/top_runes/'
 
@@ -82,8 +82,11 @@ class PrepareData:
             return
         
         def __process_rune_description_string(rune_description):
-            rune_description_string = f"{rune_description['name']} is a {rune_description['tree']} rune, description: {rune_description['description']}"
-            return rune_description_string, rune_description['id']
+            try:
+                rune_description_string = f"{rune_description['name']} is a {rune_description['tree']} rune, description: {rune_description['description']}"
+                return rune_description_string, rune_description['id']
+            except Exception as e:
+                logger.error(f'Failed to process rune description: {e}')
         
         return [__process_rune_description_string(rune_description) for rune_description in rune_descriptions]
 
@@ -105,7 +108,3 @@ class PrepareData:
         return [__process_top_rune_string(top_rune) for top_rune in top_runes]
 
 
-    
-# data_prep = PrepareData()
-# matchups = data_prep.prepare_matchups()
-# logger.info(f'matchups data: {(matchups)}')

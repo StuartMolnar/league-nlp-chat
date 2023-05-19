@@ -17,7 +17,7 @@ handlers:
     maxBytes: 1048576  # 1 MB
 loggers:
   basicLogger:
-    level: DEBUG
+    level: INFO
     handlers: [console, file]
     propagate: no
   kafka:
