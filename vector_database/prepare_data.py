@@ -9,18 +9,21 @@ with open('log_conf.yml', 'r') as f:
 
 logger = logging.getLogger('basicLogger')
 
-challenger_matchups_url = 'http://localhost:8000/matchups_past_day'
-champion_guides_url = 'http://localhost:8000/guides'
-champion_winrates_url = 'http://localhost:8000/winrates/'
-rune_descriptions_url = 'http://localhost:8000/rune_descriptions/'
-top_runes_url = 'http://localhost:8000/top_runes/'
+with open('app_conf.yml', 'r') as f:
+    app_config = yaml.safe_load(f.read())
+
+matchups_endpoint = app_config['database_endpoints']['challenger_matchups']
+guides_endpoint = app_config['database_endpoints']['champion_guides']
+winrates_endpoint = app_config['database_endpoints']['champion_winrates']
+rune_descriptions_endpoint = app_config['database_endpoints']['rune_descriptions']
+top_runes_endpoint = app_config['database_endpoints']['top_runes']
 
 class PrepareData:
     def prepare_matchups(self):
         """
         Prepares the matchups data for vector embedding.
         """
-        response = requests.get(challenger_matchups_url)
+        response = requests.get(matchups_endpoint)
         matchups = response.json()
         if response.status_code != 200:
             logger.error(f'Failed to request matchups data: {response.status_code}')
@@ -43,7 +46,7 @@ class PrepareData:
         """
         Prepares the guides data for vector embedding.
         """
-        response = requests.get(champion_guides_url)
+        response = requests.get(guides_endpoint)
         guides = response.json()
         if response.status_code != 200:
             logger.error(f'Failed to request guides data: {response.status_code}')
@@ -59,7 +62,7 @@ class PrepareData:
         """
         Prepares the winrates data for vector embedding.
         """
-        response = requests.get(champion_winrates_url)
+        response = requests.get(winrates_endpoint)
         winrates = response.json()
         if response.status_code != 200:
             logger.error(f'Failed to request winrates data: {response.status_code}')
@@ -75,7 +78,7 @@ class PrepareData:
         """
         Prepares the rune descriptions data for vector embedding.
         """
-        response = requests.get(rune_descriptions_url)
+        response = requests.get(rune_descriptions_endpoint)
         rune_descriptions = response.json()
         if response.status_code != 200:
             logger.error(f'Failed to request rune descriptions data: {response.status_code}')
@@ -95,7 +98,7 @@ class PrepareData:
         """
         Prepares the top runes data for vector embedding.
         """
-        response = requests.get(top_runes_url)
+        response = requests.get(top_runes_endpoint)
         top_runes = response.json()
         if response.status_code != 200:
             logger.error(f'Failed to request top runes data: {response.status_code}')
