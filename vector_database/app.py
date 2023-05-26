@@ -74,110 +74,33 @@ def search(query: str):
         logger.error(str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
-
-
-store = StoreData()
-
-@app.post("/store_matchups")
-def store_matchups():
+@app.post("/store_service/")
+def store_service(service: str):
     """
-    Start the process of updating the matchup data in the vector database.
+    Start the process of updating the service data in the vector database.
 
-    This endpoint doesn't require any input. When called, it triggers an update 
+    This endpoint requires a 'service' query parameter. When called, it triggers an update 
     process on the server, which collects and processes the necessary data, 
     and then stores it in the vector database.
 
-    Returns:
-        A JSON message indicating the process has been started.
-    """
-    try:
-        store.store_matchups()
-        logger.info("Matchup data stored successfully")
-        return {"message": "Matchup data stored successfully"}
-    except Exception as e:
-        logger.error(str(e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/store_guides")
-def store_guides():
-    """
-    Start the process of updating the guide data in the vector database.
-
-    Similar to the matchup endpoint, this doesn't require any input. When called,
-    it triggers an update process on the server, which collects and processes the 
-    necessary data, and then stores it in the vector database.
+    Parameters:
+        service (str): the name of the service to be processed and stored.
 
     Returns:
         A JSON message indicating the process has been started.
     """
     try:
-        store.store_guides()
-        logger.info("Guide data stored successfully")
-        return {"message": "Guide data stored successfully"}
+        store = StoreData()
+        store.store_service(service)
+        logger.info(f"{service} data stored successfully")
+        return {"message": f"{service} data stored successfully"}
+    except ValueError as e:
+        logger.error(str(e))
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/store_winrates")
-def store_winrates():
-    """
-    Start the process of updating the winrate data in the vector database.
-
-    Similar to the matchup endpoint, this doesn't require any input. When called,
-    it triggers an update process on the server, which collects and processes the 
-    necessary data, and then stores it in the vector database.
-
-    Returns:
-        A JSON message indicating the process has been started.
-    """
-    try:
-        store.store_winrates()
-        logger.info("Winrate data stored successfully")
-        return {"message": "Winrate data stored successfully"}
-    except Exception as e:
-        logger.error(str(e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/store_rune_descriptions")
-def store_rune_descriptions():
-    """
-    Start the process of updating the rune description data in the vector database.
-
-    Similar to the matchup endpoint, this doesn't require any input. When called,
-    it triggers an update process on the server, which collects and processes the 
-    necessary data, and then stores it in the vector database.
-
-    Returns:
-        A JSON message indicating the process has been started.
-    """
-    try:
-        store.store_rune_descriptions()
-        logger.info("Rune description data stored successfully")
-        return {"message": "Rune description data stored successfully"}
-    except Exception as e:
-        logger.error(str(e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/store_top_runes")
-def store_top_runes():
-    """
-    Start the process of updating the top rune data in the vector database.
-
-    Similar to the matchup endpoint, this doesn't require any input. When called,
-    it triggers an update process on the server, which collects and processes the 
-    necessary data, and then stores it in the vector database.
-
-    Returns:
-        A JSON message indicating the process has been started.
-    """
-    try:
-        store.store_top_runes()
-        logger.info("Top rune data stored successfully")
-        return {"message": "Top rune data stored successfully"}
-    except Exception as e:
-        logger.error(str(e))
-        raise HTTPException(status_code=500, detail=str(e))
-    
 if __name__ == "__main__":    
     # Start the FastAPI application
     uvicorn.run("app:app", host="0.0.0.0", port=8100, reload=True)

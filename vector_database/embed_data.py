@@ -31,22 +31,19 @@ class StoreData:
         None
 
     Methods:
-        store_matchups()
-
-        store_guides()
-
-        store_winrates()
-
-        store_rune_descriptions()
-
-        store_top_runes()
+        store_service(service): Prepares, embeds, and uploads data for a specified service.
     """
 
     def __init__(self):
         """
         Initializes the StoreData instance.
+        
+        Initializes __data_prep and structure_funcs attributes.
         """
-        self.data_prep = PrepareData()
+        self.__data_prep = PrepareData()
+        self.__structure_funcs = {
+            'matchups': self.__structure_matchup,
+        }
 
     @staticmethod
     def __embed_data(data):
@@ -94,86 +91,83 @@ class StoreData:
             service (str): The name of the service to upload to.
             batch_size (int, optional): The number of embeddings to upload at once. Defaults to 100.
         """
+        logger.info(f'Service: {service}')
         for i in range(0, len(embeddings), batch_size):
             batch = embeddings[i:i+batch_size]
             try:
                 index.upsert(vectors=batch, namespace=service)
             except Exception as e:
                 logger.error(f"An error occurred while uploading embeddings: {e}")
+                raise
 
     
-    @staticmethod
-    def __structure_matchup(embedding, id):
-        date_string = datetime.datetime.now().strftime('%B %d')
-        return (f"matchup_{date_string}_{id}", embedding)
-
-    @staticmethod
-    def __structure_guide(embedding, id):
-        return (f"guide_{id}", embedding)
-
-    @staticmethod
-    def __structure_winrate(embedding, id):
-        return (f"winrate_{id}", embedding)
-
-    def __structure_rune_description(self, embedding, id):
-        logger.info(f'Embedding rune description: {id}')
-        return (f"rune_description_{id}", embedding)
-
-    @staticmethod
-    def __structure_top_rune(embedding, id):
-        return (f"top_rune_{id}", embedding)
-    
-    def __store_data(self, data_type, prepare_func, structure_func):
+    def __structure_service(self, embedding, id, service):
         """
-        Prepares, embeds, and uploads a specified type of data.
+        Structures the ID and embedding for a given service.
 
         Args:
-            data_type (str): The type of data to handle.
-            prepare_func (func): A function to prepare the data for embedding.
-            structure_func (func): A function to structure the embeddings for upload.
-        """
-        logger.info(f"preparing {data_type} data")
-        data = getattr(self.data_prep, prepare_func)()
-        
-        logger.info(f'embedding {data_type} data')
-        data_embeddings = self.__embed_data(data)
-        
-        logger.info(f'preparing {data_type} embeddings')
-        data_embeddings = self.__prepare_embeddings(data_embeddings, structure_func)
-        
-        logger.info(f'uploading {data_type} embeddings')
-        self.__upload_embeddings(data_embeddings, data_type)
-        
-        logger.info(f"{data_type} entries uploaded")
+            embedding (list): The embedding to be structured.
+            id (str): The ID of the embedding.
+            service (str): The name of the service.
 
-    def store_matchups(self):
+        Returns:
+            tuple: A tuple where the first element is the structured ID and the second element is the embedding.
         """
-        Prepares, embeds, and uploads matchup data.
-        """
-        self.__store_data('matchups', 'prepare_matchups', self.__structure_matchup)
+        structured_id = f"{service}_{id}"
+        return structured_id, embedding
 
-    def store_guides(self):
+    def __structure_matchup(self, embedding, id):
         """
-        Prepares, embeds, and uploads guide data.
-        """
-        self.__store_data('guides', 'prepare_guides', self.__structure_guide)
+        Structures the ID and embedding specifically for the 'matchups' service.
 
-    def store_winrates(self):
-        """
-        Prepares, embeds, and uploads winrate data.
-        """
-        self.__store_data('winrates', 'prepare_winrates', self.__structure_winrate)
+        Args:
+            embedding (list): The embedding to be structured.
+            id (str): The ID of the embedding.
 
-    def store_rune_descriptions(self):
+        Returns:
+            tuple: A tuple where the first element is the structured ID and the second element is the embedding.
         """
-        Prepares, embeds, and uploads rune description data.
+        date_string = datetime.datetime.now().strftime('%B %d')
+        return (f"matchup_{date_string}_{id}", embedding)
+    
+    def store_service(self, service):
         """
-        self.__store_data('rune_descriptions', 'prepare_rune_descriptions', self.__structure_rune_description)
+        Prepares, embeds, and uploads data for a specified service.
 
-    def store_top_runes(self):
+        Args:
+            service (str): The name of the service to be processed and stored.
         """
-        Prepares, embeds, and uploads top rune data.
-        """
-        self.__store_data('top_runes', 'prepare_top_runes', self.__structure_top_rune)
+        try:
+            logger.info(f"preparing {service} data")
+            if service == 'matchups':
+                data = self.__data_prep.prepare_service('matchups_past_day')
+            else:
+                data = self.__data_prep.prepare_service(service)
+
+            if data is None:
+                logger.info(f"No data to process for {service}")
+                raise ValueError(f"No data to process for {service}")
+            
+            logger.info(f'embedding {service} data')
+            data_embeddings = self.__embed_data(data)
+            
+            if data_embeddings is None:
+                logger.error(f"No embeddings to store for {service}")
+                return
+
+            logger.info(f'preparing {service} embeddings')
+            if service in self.__structure_funcs:
+                data_embeddings = self.__prepare_embeddings(data_embeddings, self.__structure_funcs[service])
+            else:
+                data_embeddings = self.__prepare_embeddings(data_embeddings, lambda embedding, id: self.__structure_service(embedding, id, service))
+            
+            logger.info(f'uploading {service} embeddings')
+            self.__upload_embeddings(data_embeddings, service)
+            
+            logger.info(f"{service} entries uploaded")
+        except Exception as e:
+            logger.error(f"An error occurred while storing {service} service: {e}")
+            raise
+
 
 
