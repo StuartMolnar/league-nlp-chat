@@ -78,12 +78,12 @@ class SearchVector:
     
     def __get_top_reply(self):
         """
-        Retrieves the best matching reply for the query from all queried namespaces.
+        Retrieves the best matching replies for the query from all queried namespaces.
 
         Returns:
-            dict: The best matching result and its respective namespace.
+            list: The best matching results and their respective namespaces.
         """
-        logger.debug(f"Getting top reply")
+        logger.debug(f"Getting top replies")
         namespaces = [('matchups', 1), ('guides', 1), ('winrates', 1), ('rune_descriptions', 1), ('top_runes', 1)]
 
         replies = []
@@ -99,21 +99,24 @@ class SearchVector:
                     replies.append((data, namespace))
                     logger.info(f"Namespace {namespace} returned data: {data}")
 
-        top_reply = ({'score': 0}, "")
+        top_replies = [({'score': 0}, ""), ({'score': 0}, "")]
         for data, namespace in replies:
             for item in data:
-                if item['score'] > top_reply[0]['score']:
-                    top_reply = item, namespace
-
-        reply, namespace = top_reply
-        logger.info(f"top reply: {reply}")
-        id = re.findall(r'\d+$', reply['id'])[0]
-        request_url = f"http://localhost:8000/{namespace}/{id}"
-        logger.info(f"request url: {request_url}")
-        response = requests.get(request_url)
-        logger.info(f"response: {response.json()}")
-
-        return response.json()
+                if item['score'] > top_replies[0][0]['score']:
+                    top_replies[0] = item, namespace
+                    top_replies.sort(key=lambda x: x[0]['score'])
+                    
+        results = []
+        for reply, namespace in top_replies:
+            logger.info(f"top reply: {reply}")
+            id = re.findall(r'\d+$', reply['id'])[0]
+            request_url = f"http://localhost:8000/{namespace}/{id}"
+            logger.info(f"request url: {request_url}")
+            response = requests.get(request_url)
+            logger.info(f"response: {response.json()}")
+            results.append(response.json())
+            
+        return results
 
 # search = SearchVector("What runes should I take on Jax?")
 # logger.info(f"search.reply: {search.reply}")

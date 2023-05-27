@@ -91,7 +91,6 @@ class StoreData:
             service (str): The name of the service to upload to.
             batch_size (int, optional): The number of embeddings to upload at once. Defaults to 100.
         """
-        logger.info(f'Service: {service}')
         for i in range(0, len(embeddings), batch_size):
             batch = embeddings[i:i+batch_size]
             try:
@@ -139,10 +138,7 @@ class StoreData:
         """
         try:
             logger.info(f"preparing {service} data")
-            if service == 'matchups':
-                data = self.__data_prep.prepare_service('matchups_past_day')
-            else:
-                data = self.__data_prep.prepare_service(service)
+            data = self.__data_prep.prepare_service(service)
 
             if data is None:
                 logger.info(f"No data to process for {service}")

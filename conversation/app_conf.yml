@@ -1,0 +1,5 @@
+version: 1
+models:
+  response: 
+endpoints:
+  vector: 'http://localhost:8100/'

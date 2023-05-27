@@ -31,7 +31,7 @@ class PrepareData:
         Initializes the processing_funcs dictionary with service names as keys and their processing functions as values.
         """
         self.processing_funcs = {
-            'matchups_past_day': self.__process_matchup_string,
+            'matchups': self.__process_matchup_string,
             'guides': self.__process_guide_string,
             'winrates': self.__process_winrate_string,
             'rune_descriptions': self.__process_rune_description_string,

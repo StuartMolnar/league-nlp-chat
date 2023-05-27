@@ -64,7 +64,7 @@ app.add_middleware(
 )
 # add guides by id and matchups by id endpoints
 
-@app.get("/matchups_past_day")
+@app.get("/matchups")
 async def get_all_matchups_past_day():
     """
     Retrieve all challenger matchups from the database that were created in the past 24 hours.
@@ -116,7 +116,7 @@ async def get_all_matchups_past_day():
         logger.error(f"Failed to retrieve matchups: {e}", exc_info=True)
         raise e
     
-@app.get("/matchups")
+@app.get("/all_matchups")
 async def get_all_matchups():
     """
     Retrieve all challenger matchups from the database that were created on the same UTC day as the request.
@@ -160,6 +160,55 @@ async def get_all_matchups():
 
     except Exception as e:
         logger.error(f"Failed to retrieve matchups: {e}", exc_info=True)
+        raise e
+    
+@app.get("/matchups/{id}")
+async def get_matchup(id: int):
+    """
+    Retrieve a specific challenger matchup from the database by its ID.
+
+    Parameters:
+        id (int): The ID of the matchup to retrieve.
+
+    Returns:
+        dict: A dictionary containing the data for the requested matchup.
+    """
+    logger.info(f"Retrieving matchup with ID {id} from the database")
+
+    try:
+        with session_scope() as session:
+            matchup = session.query(ChallengerMatchup).get(id)
+
+            if matchup is None:
+                raise HTTPException(status_code=404, detail="Matchup not found")
+
+            result = {
+                "id": matchup.id,
+                "player1": {
+                    "name": matchup.player1_name,
+                    "champion": matchup.player1_champion,
+                    "role": matchup.player1_role,
+                    "kills": matchup.player1_kills,
+                    "deaths": matchup.player1_deaths,
+                    "assists": matchup.player1_assists,
+                    "items": matchup.player1_items
+                },
+                "player2": {
+                    "name": matchup.player2_name,
+                    "champion": matchup.player2_champion,
+                    "role": matchup.player2_role,
+                    "kills": matchup.player2_kills,
+                    "deaths": matchup.player2_deaths,
+                    "assists": matchup.player2_assists,
+                    "items": matchup.player2_items
+                },
+                "date": matchup.timestamp.strftime('%B %d')
+            }
+            logger.info(f"Retrieved matchup with ID {id} from the database")
+            return result
+
+    except Exception as e:
+        logger.error(f"Failed to retrieve matchup with ID {id}: {e}", exc_info=True)
         raise e
     
 @app.get("/guides")
