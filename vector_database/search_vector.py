@@ -9,6 +9,8 @@ import concurrent.futures
 import requests
 import re
 
+MAX_REPLIES = 5
+MIN_REPLIES = 1
 
 with open('log_conf.yml', 'r') as f:
     log_config = yaml.safe_load(f.read())
@@ -97,9 +99,12 @@ class SearchVector:
                     logger.error(f"{namespace} generated an exception: {exc}")
                 else:
                     replies.append((data, namespace))
-                    logger.info(f"Namespace {namespace} returned data: {data}")
+                    logger.info(f"Namespace {namespace} returned data")
 
-        top_replies = [({'score': 0}, ""), ({'score': 0}, "")]
+        num_replies = app_config['configurations']['num_replies']
+        if num_replies > MAX_REPLIES: num_replies = 5
+        if num_replies < MIN_REPLIES: num_replies = 1
+        top_replies = [({'score': 0}, "")] * num_replies
         for data, namespace in replies:
             for item in data:
                 if item['score'] > top_replies[0][0]['score']:
@@ -108,12 +113,9 @@ class SearchVector:
                     
         results = []
         for reply, namespace in top_replies:
-            logger.info(f"top reply: {reply}")
             id = re.findall(r'\d+$', reply['id'])[0]
             request_url = f"http://localhost:8000/{namespace}/{id}"
-            logger.info(f"request url: {request_url}")
             response = requests.get(request_url)
-            logger.info(f"response: {response.json()}")
             results.append(response.json())
             
         return results

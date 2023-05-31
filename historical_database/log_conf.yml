@@ -21,7 +21,7 @@ loggers:
     handlers: [console, file]
     propagate: no
   kafka:
-    level: INFO 
+    level: WARNING 
     handlers: [console]
     propagate: no
   asyncio:

@@ -3,3 +3,5 @@ models:
   embed_model: 'text-embedding-ada-002'
 endpoints:
   database: 'http://localhost:8000/'
+configurations:
+  num_replies: 2
