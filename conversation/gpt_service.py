@@ -7,14 +7,21 @@ import logging.config
 import requests
 from typing import Dict
 
-with open('log_conf.yml', 'r') as f:
-    log_config = yaml.safe_load(f.read())
-    logging.config.dictConfig(log_config)
+try:
+    with open('log_conf.yml', 'r') as f:
+        log_config = yaml.safe_load(f.read())
+        logging.config.dictConfig(log_config)
+except (FileNotFoundError, yaml.YAMLError) as e:
+    print(f"Error loading logging configuration: {e}")
 
 logger = logging.getLogger('basicLogger')
 
-with open('app_conf.yml', 'r') as f:
-    app_config = yaml.safe_load(f.read())
+try:
+    with open('app_conf.yml', 'r') as f:
+        app_config = yaml.safe_load(f.read())
+except (FileNotFoundError, yaml.YAMLError) as e:
+    logger.error(f"Error loading application configuration: {e}")
+    raise
 
 # Load environment variables from the .env file
 load_dotenv()
