@@ -9,6 +9,7 @@ import logging.config
 import yaml
 from contextlib import contextmanager
 from kafka_consumer import Consumer
+from truncating_log_handler import TruncatingLogHandler
 
 try:
     with open('log_conf.yml', 'r') as f:

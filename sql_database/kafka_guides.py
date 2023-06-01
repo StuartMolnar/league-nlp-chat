@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
@@ -9,7 +9,7 @@ from kafka_consumer import Consumer
 import logging
 import logging.config
 import yaml
-import json
+from truncating_log_handler import TruncatingLogHandler
 from contextlib import contextmanager
 
 try:

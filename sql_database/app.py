@@ -1,7 +1,7 @@
 """
 This module provides API endpoints to manage league of legends data.
 """
-from fastapi import FastAPI, HTTPException, Response, status
+from fastapi import FastAPI, HTTPException, Response, status, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -17,6 +17,8 @@ from kafka_descriptions import KafkaDescriptions, RuneDescription
 from kafka_runes import KafkaRunes, TopRunes
 from kafka_winrates import KafkaWinrate, ChampionWinrates
 from datetime import datetime, timezone, timedelta
+from pydantic import BaseModel
+from typing import List
 
 try:
     with open('log_conf.yml', 'r') as f:
@@ -36,8 +38,13 @@ except (FileNotFoundError, yaml.YAMLError) as e:
 
 app = FastAPI()
 
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    logger.error(f"An HTTP error occurred: {exc}", exc_info=True)
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
 @app.exception_handler(Exception)
-async def handle_internal_server_error(request, exc):
+async def handle_internal_server_error(request: Request, exc: Exception):
     """
     Handle internal server errors and log the exception.
 
@@ -69,9 +76,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# add guides by id and matchups by id endpoints
 
-@app.get("/matchups")
+class PlayerModel(BaseModel):
+    name: str
+    champion: str
+    role: str
+    kills: int
+    deaths: int
+    assists: int
+    items: str
+
+class MatchupModel(BaseModel):
+    id: int
+    player1: PlayerModel
+    player2: PlayerModel
+    date: str
+
+@app.get("/matchups", response_model=List[MatchupModel])
 async def get_all_matchups_past_day():
     """
     Retrieve all challenger matchups from the database that were created in the past 24 hours.
@@ -91,29 +112,28 @@ async def get_all_matchups_past_day():
             ).all()
 
             results = [
-                {
-                    "id": matchup.id,
-                    "player1": {
-                        "name": matchup.player1_name,
-                        "champion": matchup.player1_champion,
-                        "role": matchup.player1_role,
-                        "kills": matchup.player1_kills,
-                        "deaths": matchup.player1_deaths,
-                        "assists": matchup.player1_assists,
-                        "items": matchup.player1_items
-                    },
-                    "player2": {
-                        "name": matchup.player2_name,
-                        "champion": matchup.player2_champion,
-                        "role": matchup.player2_role,
-                        "kills": matchup.player2_kills,
-                        "deaths": matchup.player2_deaths,
-                        "assists": matchup.player2_assists,
-                        "items": matchup.player2_items
-                    },
-                    "date": matchup.timestamp.strftime('%B %d')
-                    
-                }
+                MatchupModel(
+                    id=matchup.id,
+                    player1=PlayerModel(
+                        name=matchup.player1_name,
+                        champion=matchup.player1_champion,
+                        role=matchup.player1_role,
+                        kills=matchup.player1_kills,
+                        deaths=matchup.player1_deaths,
+                        assists=matchup.player1_assists,
+                        items=matchup.player1_items
+                    ),
+                    player2=PlayerModel(
+                        name=matchup.player2_name,
+                        champion=matchup.player2_champion,
+                        role=matchup.player2_role,
+                        kills=matchup.player2_kills,
+                        deaths=matchup.player2_deaths,
+                        assists=matchup.player2_assists,
+                        items=matchup.player2_items
+                    ),
+                    date=matchup.timestamp.strftime('%B %d')
+                )
                 for matchup in matchups
             ]
             logger.info(f"Retrieved {len(results)} matchups from the database")
@@ -123,7 +143,7 @@ async def get_all_matchups_past_day():
         logger.error(f"Failed to retrieve matchups: {e}", exc_info=True)
         raise e
     
-@app.get("/all_matchups")
+@app.get("/all_matchups", response_model=List[MatchupModel])
 async def get_all_matchups():
     """
     Retrieve all challenger matchups from the database that were created on the same UTC day as the request.
@@ -138,28 +158,28 @@ async def get_all_matchups():
             matchups = session.query(ChallengerMatchup).all()
 
             results = [
-                {
-                    "id": matchup.id,
-                    "player1": {
-                        "name": matchup.player1_name,
-                        "champion": matchup.player1_champion,
-                        "role": matchup.player1_role,
-                        "kills": matchup.player1_kills,
-                        "deaths": matchup.player1_deaths,
-                        "assists": matchup.player1_assists,
-                        "items": matchup.player1_items
-                    },
-                    "player2": {
-                        "name": matchup.player2_name,
-                        "champion": matchup.player2_champion,
-                        "role": matchup.player2_role,
-                        "kills": matchup.player2_kills,
-                        "deaths": matchup.player2_deaths,
-                        "assists": matchup.player2_assists,
-                        "items": matchup.player2_items
-                    },
-                    "date": matchup.timestamp.strftime('%B %d')
-                }
+                MatchupModel(
+                    id=matchup.id,
+                    player1=PlayerModel(
+                        name=matchup.player1_name,
+                        champion=matchup.player1_champion,
+                        role=matchup.player1_role,
+                        kills=matchup.player1_kills,
+                        deaths=matchup.player1_deaths,
+                        assists=matchup.player1_assists,
+                        items=matchup.player1_items
+                    ),
+                    player2=PlayerModel(
+                        name=matchup.player2_name,
+                        champion=matchup.player2_champion,
+                        role=matchup.player2_role,
+                        kills=matchup.player2_kills,
+                        deaths=matchup.player2_deaths,
+                        assists=matchup.player2_assists,
+                        items=matchup.player2_items
+                    ),
+                    date=matchup.timestamp.strftime('%B %d')
+                )
                 for matchup in matchups
             ]
             logger.info(f"Retrieved {len(results)} matchups from the database")
@@ -169,7 +189,7 @@ async def get_all_matchups():
         logger.error(f"Failed to retrieve matchups: {e}", exc_info=True)
         raise e
     
-@app.get("/matchups/{id}")
+@app.get("/matchups/{id}", response_model=MatchupModel)
 async def get_matchup(id: int):
     """
     Retrieve a specific challenger matchup from the database by its ID.
@@ -180,6 +200,12 @@ async def get_matchup(id: int):
     Returns:
         dict: A dictionary containing the data for the requested matchup.
     """
+    if id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid id provided. Id must be a positive integer."
+        )
+    
     logger.info(f"Retrieving matchup with ID {id} from the database")
 
     try:
@@ -189,36 +215,41 @@ async def get_matchup(id: int):
             if matchup is None:
                 raise HTTPException(status_code=404, detail="Matchup not found")
 
-            result = {
-                "id": matchup.id,
-                "player1": {
-                    "name": matchup.player1_name,
-                    "champion": matchup.player1_champion,
-                    "role": matchup.player1_role,
-                    "kills": matchup.player1_kills,
-                    "deaths": matchup.player1_deaths,
-                    "assists": matchup.player1_assists,
-                    "items": matchup.player1_items
-                },
-                "player2": {
-                    "name": matchup.player2_name,
-                    "champion": matchup.player2_champion,
-                    "role": matchup.player2_role,
-                    "kills": matchup.player2_kills,
-                    "deaths": matchup.player2_deaths,
-                    "assists": matchup.player2_assists,
-                    "items": matchup.player2_items
-                },
-                "date": matchup.timestamp.strftime('%B %d')
-            }
+            result = MatchupModel(
+                id=matchup.id,
+                player1=PlayerModel(
+                    name=matchup.player1_name,
+                    champion=matchup.player1_champion,
+                    role=matchup.player1_role,
+                    kills=matchup.player1_kills,
+                    deaths=matchup.player1_deaths,
+                    assists=matchup.player1_assists,
+                    items=matchup.player1_items
+                ),
+                player2=PlayerModel(
+                    name=matchup.player2_name,
+                    champion=matchup.player2_champion,
+                    role=matchup.player2_role,
+                    kills=matchup.player2_kills,
+                    deaths=matchup.player2_deaths,
+                    assists=matchup.player2_assists,
+                    items=matchup.player2_items
+                ),
+                date=matchup.timestamp.strftime('%B %d')
+            )
             logger.info(f"Retrieved matchup with ID {id} from the database")
             return result
 
     except Exception as e:
         logger.error(f"Failed to retrieve matchup with ID {id}: {e}", exc_info=True)
         raise e
-    
-@app.get("/guides")
+
+class ChampionGuideModel(BaseModel):
+    id: int
+    champion: str
+    guide: str
+
+@app.get("/guides", response_model=List[ChampionGuideModel])
 async def get_all_guides():
     """
     Retrieve all champion guides from the database.
@@ -231,13 +262,12 @@ async def get_all_guides():
     try:
         with session_scope() as session:
             guides = session.query(ChampionGuide).all()
-            formatted_guides = [{"id": row.id, "champion": row.champion, "guide": row.guide} for row in guides]
-            return formatted_guides
+            return [ChampionGuideModel(id=row.id, champion=row.champion, guide=row.guide) for row in guides]
     except Exception as e:
         logger.error(f"Failed to retrieve guides: {e}", exc_info=True)
         raise e
     
-@app.get("/guides/{id}")
+@app.get("/guides/{id}", response_model=ChampionGuideModel)
 async def get_guide_by_id(id: int):
     """
     Retrieve a champion guide from the database by its ID.
@@ -248,18 +278,32 @@ async def get_guide_by_id(id: int):
     Returns:
         dict: A dictionary containing the champion name and guide text.
     """
+    if id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid id provided. Id must be a positive integer."
+        )
+    
     logger.info(f"Retrieving guide with ID {id} from the database")
 
     try:
         with session_scope() as session:
             guide = session.query(ChampionGuide).filter(ChampionGuide.id == id).first()
-            return {"id": guide.id, "champion": guide.champion, "guide": guide.guide}
+            if guide is not None:
+                return ChampionGuideModel(id=guide.id, champion=guide.champion, guide=guide.guide)
+            else:
+                raise HTTPException(status_code=404, detail=f"Guide with ID {id} not found")
     except Exception as e:
         logger.error(f"Failed to retrieve guide with ID {id}: {e}", exc_info=True)
         raise e
+    
+class RuneDescriptionModel(BaseModel):
+    id: int
+    tree: str
+    name: str
+    description: str
 
-
-@app.get("/rune_descriptions")
+@app.get("/rune_descriptions", response_model=List[RuneDescriptionModel])
 async def get_all_rune_descriptions():
     """
     Retrieve all rune descriptions from the database.
@@ -272,15 +316,12 @@ async def get_all_rune_descriptions():
     try:
         with session_scope() as session:
             rune_descriptions = session.query(RuneDescription).all()
-            return [
-                {"id": rune_desc.id, "tree": rune_desc.tree, "name": rune_desc.name, "description": rune_desc.description}
-                for rune_desc in rune_descriptions
-            ]
+            return [RuneDescriptionModel(id=rune_desc.id, tree=rune_desc.tree, name=rune_desc.name, description=rune_desc.description) for rune_desc in rune_descriptions]
     except Exception as e:
         logger.error(f"Failed to retrieve rune descriptions: {e}", exc_info=True)
         raise e
 
-@app.get("/rune_descriptions/{id}")
+@app.get("/rune_descriptions/{id}", response_model=RuneDescriptionModel)
 async def get_rune_description_by_id(id: int):
     """
     Retrieve a specific rune description from the database by its ID.
@@ -291,25 +332,31 @@ async def get_rune_description_by_id(id: int):
     Returns:
         dict: A dictionary containing information on the specified rune description.
     """
+    if id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid id provided. Id must be a positive integer."
+        )
+    
     logger.info(f"Retrieving rune description with ID {id} from the database")
 
     try:
         with session_scope() as session:
             rune_desc = session.query(RuneDescription).filter(RuneDescription.id == id).first()
             if rune_desc is not None:
-                return {
-                    "id": rune_desc.id,
-                    "tree": rune_desc.tree,
-                    "name": rune_desc.name,
-                    "description": rune_desc.description
-                }
+                return RuneDescription(id=rune_desc.id, tree=rune_desc.tree, name=rune_desc.name, description=rune_desc.description)
             else:
                 raise HTTPException(status_code=404, detail=f"Rune description with ID {id} not found")
     except Exception as e:
         logger.error(f"Failed to retrieve rune description with ID {id}: {e}", exc_info=True)
         raise e
-    
-@app.get("/top_runes")
+  
+class TopRuneModel(BaseModel):
+    id: int
+    champion: str
+    runes: str
+
+@app.get("/top_runes", response_model=List[TopRuneModel])
 async def get_all_top_runes():
     """
     Retrieve all champion runes from the database.
@@ -322,15 +369,13 @@ async def get_all_top_runes():
     try:
         with session_scope() as session:
             top_runes = session.query(TopRunes).all()
-            return [
-                {"id": row.id, "champion": row.champion, "runes": row.runes}
-                for row in top_runes
-            ]
+            return [TopRuneModel(id=row.id, champion=row.champion, runes=row.runes) for row in top_runes]
     except Exception as e:
         logger.error(f"Failed to retrieve champion runes: {e}", exc_info=True)
         raise e
+
     
-@app.get("/top_runes/{id}")
+@app.get("/top_runes/{id}", response_model=TopRuneModel)
 async def get_top_runes_by_champion(id: int):
     """
     Retrieve champion runes for a specific champion from the database.
@@ -341,21 +386,32 @@ async def get_top_runes_by_champion(id: int):
     Returns:
         list: A list containing information on the runes for the specified champion.
     """
+    if id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid id provided. Id must be a positive integer."
+        )
+    
     logger.info(f"Retrieving runes for champion id '{id}' from the database")
 
     try:
         with session_scope() as session:
             top_runes = session.query(TopRunes).filter_by(id=id).one_or_none()
             if top_runes:
-                return {"id": top_runes.id, "champion": top_runes.champion, "runes": top_runes.runes}
+                return TopRuneModel(id=top_runes.id, champion=top_runes.champion, runes=top_runes.runes)
             else:
-                return {"message": f"No runes found for champion '{top_runes.champion}'"}
+                return {"message": f"No runes found for champion with id '{id}'"}
     except Exception as e:
         logger.error(f"Failed to retrieve runes for champion: {e}", exc_info=True)
         raise e
+    
+class ChampionWinrateModel(BaseModel):
+    id: int
+    champion: str
+    winrate: str
 
 
-@app.get("/winrates")
+@app.get("/winrates", response_model=List[ChampionWinrateModel])
 async def get_all_winrates():
     """
     Retrieve all champion winrates from the database.
@@ -368,15 +424,12 @@ async def get_all_winrates():
     try:
         with session_scope() as session:
             champion_winrates = session.query(ChampionWinrates).all()
-            return [
-                {"id": row.id, "champion": row.champion, "winrate": row.winrate}
-                for row in champion_winrates
-            ]
+            return [ChampionWinrateModel(id=row.id, champion=row.champion, winrate=row.winrate) for row in champion_winrates]
     except Exception as e:
         logger.error(f"Failed to retrieve Kafka winrates: {e}", exc_info=True)
         raise e
 
-@app.get("/winrates/{id}")
+@app.get("/winrates/{id}", response_model=ChampionWinrateModel)
 async def get_winrate_by_champion(id: int):
     """
     Retrieve champion winrate for a specific champion from the database.
@@ -387,15 +440,24 @@ async def get_winrate_by_champion(id: int):
     Returns:
         list: A list containing information on the winrate for the specified champion.
     """
+    if id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid id provided. Id must be a positive integer."
+        )
+    
     logger.info(f"Retrieving champion winrate for champion id '{id}' from the database")
 
     try:
         with session_scope() as session:
             champion_winrate = session.query(ChampionWinrates).filter_by(id=id).one_or_none()
             if champion_winrate:
-                return {"id": champion_winrate.id, "champion": champion_winrate.champion, "winrate": champion_winrate.winrate}
+                return ChampionWinrateModel(id=champion_winrate.id, champion=champion_winrate.champion, winrate=champion_winrate.winrate)
             else:
-                return {"message": f"No winrate found for champion '{champion_winrate.champion}'"}
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"No winrate found for champion with id {id}"
+                )
     except Exception as e:
         logger.error(f"Failed to retrieve winrate for champion': {e}", exc_info=True)
         raise e

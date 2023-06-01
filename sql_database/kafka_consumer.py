@@ -6,6 +6,7 @@ import yaml
 from kafka import KafkaConsumer
 import threading
 import time
+from truncating_log_handler import TruncatingLogHandler
 
 try:
     with open('log_conf.yml', 'r') as f:
