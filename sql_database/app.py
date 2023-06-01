@@ -18,14 +18,21 @@ from kafka_runes import KafkaRunes, TopRunes
 from kafka_winrates import KafkaWinrate, ChampionWinrates
 from datetime import datetime, timezone, timedelta
 
-with open('log_conf.yml', 'r') as f:
-    log_config = yaml.safe_load(f.read())
-    logging.config.dictConfig(log_config)
+try:
+    with open('log_conf.yml', 'r') as f:
+        log_config = yaml.safe_load(f.read())
+        logging.config.dictConfig(log_config)
+except (FileNotFoundError, yaml.YAMLError) as e:
+    print(f"Error loading logging configuration: {e}")
 
 logger = logging.getLogger('basicLogger')
 
-with open('app_conf.yml', 'r') as f:
-    app_config = yaml.safe_load(f.read())
+try:
+    with open('app_conf.yml', 'r') as f:
+        app_config = yaml.safe_load(f.read())
+except (FileNotFoundError, yaml.YAMLError) as e:
+    logger.error(f"Error loading application configuration: {e}")
+    raise
 
 app = FastAPI()
 
