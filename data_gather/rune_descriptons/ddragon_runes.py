@@ -159,7 +159,12 @@ class DDragonRunes:
             for runes in path["slots"]:
                 for rune in runes["runes"]:
                     cleaned_long_desc = re.sub(r'<[^>]*>', '', rune["longDesc"])
-                    rune_data.append([rune["id"], rune_tree, rune["name"], cleaned_long_desc])
+                    rune_data.append({
+                        "id": rune["id"],
+                        "rune_tree": rune_tree,
+                        "name": rune["name"],
+                        "long_desc": cleaned_long_desc
+                    })
         self.rune_data = rune_data
 
     def __send_rune_data_to_kafka(self, topic):

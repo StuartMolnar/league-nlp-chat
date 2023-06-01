@@ -118,6 +118,6 @@ class KafkaRunes:
         """
         Run the Kafka consumer in a separate thread.
         """
-        logger.info('Start the Kafka consumer')
+        logger.info(f'Start the runes Kafka consumer')
         consumer = Consumer(app_config['kafka']['topic_runes'], self.__process_runes)
         consumer.run_kafka_consumer()

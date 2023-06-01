@@ -1,3 +1,3 @@
 version: 1
 kafka:
-  topic: 'challenger_matchups'
+  topic: 'matchups'

@@ -464,25 +464,48 @@ async def get_winrate_by_champion(id: int):
 
 
 if __name__ == "__main__":
-    # # Start the Kafka matchups consumer
-    kafka_matchup = KafkaMatchups()
-    kafka_matchup.run_kafka_consumer()
 
-    # Start the Kafka guides consumer
-    kafka_guide = KafkaGuides()
-    kafka_guide.run_kafka_consumer()
+    logger.info("Starting Kafka consumers")
+
+    # #  Start the Kafka matchups consumer
+    # try:
+    #     kafka_matchup = KafkaMatchups()
+    #     kafka_matchup.run_kafka_consumer()
+    # except Exception as e:
+    #     logger.error(f"Failed to retrieve Kafka matchups: {e}", exc_info=True)
+    #     raise e
+
+    # # Start the Kafka guides consumer
+    # try:
+    #     kafka_guide = KafkaGuides()
+    #     kafka_guide.run_kafka_consumer()
+    # except Exception as e:
+    #     logger.error(f"Failed to retrieve Kafka guides: {e}", exc_info=True)
+    #     raise e
 
     # # Start the rune descriptions consumer
-    rune_descriptions = KafkaDescriptions()
-    rune_descriptions.run_kafka_consumer()
+    try:
+        rune_descriptions = KafkaDescriptions()
+        rune_descriptions.run_kafka_consumer()
+    except Exception as e:
+        logger.error(f"Failed to retrieve Kafka rune descriptions: {e}", exc_info=True)
+        raise e
 
-    # Start the top runes consumer
-    top_runes = KafkaRunes()
-    top_runes.run_kafka_consumer()
-
-    # Start the winrate consumer
-    winrates = KafkaWinrate()
-    winrates.run_kafka_consumer()
+    # # Start the top runes consumer
+    # try:
+    #     top_runes = KafkaRunes()
+    #     top_runes.run_kafka_consumer()
+    # except Exception as e:
+    #     logger.error(f"Failed to retrieve Kafka top runes: {e}", exc_info=True)
+    #     raise e
+    
+    # # Start the winrate consumer
+    # try:
+    #     winrates = KafkaWinrate()
+    #     winrates.run_kafka_consumer()
+    # except Exception as e:
+    #     logger.error(f"Failed to retrieve Kafka winrates: {e}", exc_info=True)
+    #     raise e
 
     # Start the FastAPI application
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

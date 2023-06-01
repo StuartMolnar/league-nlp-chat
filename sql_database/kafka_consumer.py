@@ -26,6 +26,7 @@ except (FileNotFoundError, yaml.YAMLError) as e:
 
 class Consumer:
     def __init__(self, topic, process_function):
+        logger.info(f"Creating Kafka consumer object for topic: {topic}")
         self.topic = topic
         self.process_function = process_function
 
@@ -38,19 +39,21 @@ class Consumer:
             It listens for new messages in the topic and calls the `process_function` function
             for each message to store the data in the database.
             """
+            logger.info(f'running consume messages on topic {self.topic}')
             attempts = 0
             while attempts < 5:
                 try:
-                    logger.info('Consuming messages from kafka topic')
+                    logger.info(f'Consuming messages from {self.topic} kafka topic')
+                    consumer_group = f'{self.topic}_consumer_group'
                     consumer = KafkaConsumer(
                         self.topic,
                         bootstrap_servers=app_config['kafka']['bootstrap_servers'],
                         value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-                        auto_offset_reset='latest',
+                        auto_offset_reset='earliest',
                         enable_auto_commit=True,
-                        group_id='consumer_group',
+                        group_id=consumer_group,
                         max_poll_interval_ms=1000,
-                        max_poll_records=20,
+                        max_poll_records=5,
                     )
                     break
                 except NoBrokersAvailable:
@@ -58,25 +61,30 @@ class Consumer:
                     attempts += 1
                     time.sleep(10)
 
-            for message in consumer:
-                try:
-                    message_data = message.value
-                    if not isinstance(message_data, dict):
-                        raise TypeError("Message is not a dictionary")
+            consumer_timeout_ms = 1000
+            while True:
+                messages = consumer.poll(timeout_ms=consumer_timeout_ms)
+                for _, records in messages.items():
+                    for record in records:
+                        try:
+                            message_data = record.value
+                            logger.info(f"record received: {record}")
+                            if not isinstance(message_data, dict):
+                                raise TypeError("Message is not a dictionary")
 
-                    if message_data:
-                        self.process_function(message_data)
-                    else:
-                        logger.warning('Received an empty message, skipping')
-                except TypeError as e:
-                    logger.error(f"Message is not a dictionary: {e}")
-                    continue
-                except json.JSONDecodeError as e:
-                    logger.error(f"Error decoding JSON: {e}", exc_info=True)
-                    continue
-                except Exception as e:
-                    logger.error(f"Unexpected error processing message: {e}", exc_info=True)
-                    continue
+                            if message_data:
+                                self.process_function(message_data)
+                            else:
+                                logger.warning('Received an empty message, skipping')
+                        except TypeError as e:
+                            logger.error(f"Message is not a dictionary: {e}")
+                            continue
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Error decoding JSON: {e}", exc_info=True)
+                            continue
+                        except Exception as e:
+                            logger.error(f"Unexpected error processing message: {e}", exc_info=True)
+                            continue
 
     def run_kafka_consumer(self):
         """

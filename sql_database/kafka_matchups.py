@@ -150,6 +150,6 @@ class KafkaMatchups:
         """
         Run the Kafka consumer in a separate thread.
         """
-        logger.info('Start the Kafka consumer')
+        logger.info(f'Start the matchups Kafka consumer')
         consumer = Consumer(app_config['kafka']['topic_matchups'], self.__process_matchup)
         consumer.run_kafka_consumer()

@@ -95,42 +95,43 @@ class KafkaDescriptions:
 
     def __process_description(self, description: DescriptionData):
         """
-        Create a new description description in the database.
+        Create a new rune description in the database.
 
         Args:
-            guide: A descriptionData object containing the guide text.
+            description: A DescriptionData object containing the rune description.
         """
         try:
             with session_scope() as session:
                 # Check if an entry with the same ID already exists
-                existing_entry = session.query(RuneDescription).filter_by(name=description[2]).one_or_none()
+                existing_entry = session.query(RuneDescription).filter_by(name=description["name"]).one_or_none()
 
                 if existing_entry:
                     # Update the existing entry
-                    existing_entry.tree = description[1]
-                    existing_entry.name = description[2]
-                    existing_entry.description = description[3]
-                    logger.info(f"Updated description object with id: {existing_entry.id}")
+                    existing_entry.tree = description["rune_tree"]
+                    existing_entry.name = description["name"]
+                    existing_entry.description = description["long_desc"]
+                    logger.info(f"Updated rune description with id: {existing_entry.id}")
                 else:
                     # Create a new entry
                     new_entry = RuneDescription(
-                        tree=description[1],
-                        name=description[2],
-                        description=description[3]
+                        tree=description["rune_tree"],
+                        name=description["name"],
+                        description=description["long_desc"]
                     )
                     session.add(new_entry)
                     session.flush()
                     session.refresh(new_entry)
-                    logger.info(f"Created description object with id: {new_entry.id}")
+                    logger.info(f"Created rune description with id: {new_entry.id}")
         except ValueError as e:
-            logger.error(f"Failed to parse description: {description}. Error: {e}")
+            logger.error(f"Failed to parse rune description: {description}. Error: {e}")
         except Exception as e:
-            logger.error(f"Failed to create description object: {e}", exc_info=True)
+            logger.error(f"Failed to create rune description: {e}", exc_info=True)
+
 
     def run_kafka_consumer(self):
         """
         Run the Kafka consumer in a separate thread.
         """
-        logger.info('Start the Kafka consumer')
-        consumer = Consumer(app_config['kafka']['topic_guides'], self.__process_description)
+        logger.info(f'Start the rune description Kafka consumer')
+        consumer = Consumer(app_config['kafka']['topic_descriptions'], self.__process_description)
         consumer.run_kafka_consumer()

@@ -125,6 +125,6 @@ class KafkaGuides:
         """
         Run the Kafka consumer in a separate thread.
         """
-        logger.info('Start the Kafka consumer')
+        logger.info(f'Start the guides Kafka consumer')
         consumer = Consumer(app_config['kafka']['topic_guides'], self.__process_guide)
         consumer.run_kafka_consumer()
