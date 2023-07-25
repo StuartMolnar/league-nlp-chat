@@ -95,7 +95,7 @@ class GPT_Service:
         messages = [
             {"role": "system", "content": "You are a league of legends chat assistant."},
             {"role": "user", "content": f"Here is a query: {self.query}"},
-            {"role": "assistant", "content": f"Answer the query with only the context provided: {self.context}"}
+            {"role": "assistant", "content": f"Answer the query using only the context provided: {self.context}"}
         ]
 
         try:
